@@ -41,8 +41,8 @@ use ark_std::{test_rng, UniformRand};
 
     #[test]
     fn test_naive_msm_with_empty_lists() {
-        let points: Vec<G1Projective> = Vec::new();
-        let scalars: Vec<u32> = Vec::new();
+        let points: Vec<G1Projective> = Vec::new(); // Empty list
+        let scalars: Vec<u32> = Vec::new(); // Empty list
         assert_eq!(naive_msm(&points, &scalars), G1Projective::zero(), "MSM with large scalar failed");
     }
 
