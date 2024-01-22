@@ -6,17 +6,21 @@ use std::collections::HashMap;
 // Main pippenger function
 pub fn pippenger(points: &[G1Projective], scalars: &[u32], window_size: usize) -> G1Projective {
 
+    // Ensure points and scalars have the same length
+    assert_eq!(points.len(), scalars.len(), "Points and scalars must have the same length");
+    
     let partitions = partition_msm(scalars, window_size);
     combine_partitioned_msm(&partitions, points)
 }
 
-struct MsmPartition {
+pub struct MsmPartition {
     bit_index: usize,
     window_values: Vec<u32>,
 }
 
 /// Step 1: Split MSM with 32-bit scalars into 32/c MSMs with c-bit scalars. c == window_size
-fn partition_msm(scalars: &[u32], window_size: usize) -> Vec<MsmPartition> {
+pub fn partition_msm(scalars: &[u32], window_size: usize) -> Vec<MsmPartition> {
+    
     // Calculate the total number of partitions based on window size
     let num_partitions = 32 / window_size;
 
@@ -47,7 +51,7 @@ fn partition_msm(scalars: &[u32], window_size: usize) -> Vec<MsmPartition> {
 }
 
 // Step 2: Compute MSM for each partition
-fn compute_msm_for_partition(partition: &MsmPartition, points: &[G1Projective]) -> G1Projective {
+pub fn compute_msm_for_partition(partition: &MsmPartition, points: &[G1Projective]) -> G1Projective {
     // HashMap to bucket indexes of similar scalar values
     let mut buckets: HashMap<u32, Vec<usize>> = HashMap::new();
 
@@ -76,7 +80,7 @@ fn compute_msm_for_partition(partition: &MsmPartition, points: &[G1Projective]) 
 }
 
 // Step 3: Compute the final MSM result by combining all partitions
-fn combine_partitioned_msm(partitions: &[MsmPartition], points: &[G1Projective]) -> G1Projective {
+pub fn combine_partitioned_msm(partitions: &[MsmPartition], points: &[G1Projective]) -> G1Projective {
     // Variable to store the final MSM result
     let mut final_result = G1Projective::zero();
 
