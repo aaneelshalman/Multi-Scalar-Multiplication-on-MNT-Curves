@@ -17,6 +17,7 @@ use ark_std::{test_rng, UniformRand};
         let mut rng = test_rng();
         let points = vec![G1Projective::rand(&mut rng), G1Projective::rand(&mut rng)];
         let scalars = vec![1, 2];  // Mixed scalars
+        // Compare against result from point addition and scalar multiplication
         let expected_result = add_points(scalar_multiply(points[0], scalars[0].into()), scalar_multiply(points[1], scalars[1].into()));
         assert_eq!(naive_msm(&points, &scalars), expected_result, "MSM with mixed scalars failed");
     }
@@ -26,6 +27,7 @@ use ark_std::{test_rng, UniformRand};
         let mut rng = test_rng();
         let points = vec![G1Projective::rand(&mut rng), G1Projective::rand(&mut rng)];
         let scalars = vec![1, 1];  // All ones
+        // Compare against result from point addition and scalar multiplication
         let expected_result = add_points(points[0], points[1]);
         assert_eq!(naive_msm(&points, &scalars), expected_result, "MSM with all ones scalars failed");
     }
@@ -35,6 +37,7 @@ use ark_std::{test_rng, UniformRand};
         let mut rng = test_rng();
         let points = vec![G1Projective::rand(&mut rng)];
         let large_scalar = 1u32 << 30;  // Large scalar
+        // Compare against result from point addition and scalar multiplication
         let expected_result = scalar_multiply(points[0], large_scalar.into());
         assert_eq!(naive_msm(&points, &[large_scalar]), expected_result, "MSM with large scalar failed");
     }
