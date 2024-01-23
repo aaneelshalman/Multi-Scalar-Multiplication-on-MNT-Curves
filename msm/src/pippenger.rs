@@ -22,7 +22,9 @@ pub struct MsmPartition {
 pub fn partition_msm(scalars: &[u32], window_size: usize) -> Vec<MsmPartition> {
     
     // Calculate the total number of partitions based on window size
-    let num_partitions = 32 / window_size;
+    // (32 + window_size - 1) / window_size is used so that if 32 divides window_size, num_partitions will return the divisor
+    // But if 32 does not divide window_size, then num_partitions will round up the float instead of round down, the default in Rust
+    let num_partitions = (32 + window_size - 1) / window_size;
 
     // Vector to hold information on partitions
     let mut partitions = Vec::new();
