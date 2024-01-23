@@ -14,8 +14,8 @@ pub fn pippenger(points: &[G1Projective], scalars: &[u32], window_size: usize) -
 }
 
 pub struct MsmPartition {
-    bit_index: usize,
-    window_values: Vec<u32>,
+    pub bit_index: usize,
+    pub window_values: Vec<u32>,
 }
 
 /// Step 1: Split MSM with 32-bit scalars into 32/c MSMs with c-bit scalars. c == window_size
