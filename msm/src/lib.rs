@@ -6,5 +6,3 @@ extern crate ark_ec;
 pub mod operations;
 pub mod pippenger;
 pub mod naive;
-
-pub use operations::{add_points, scalar_multiply};
