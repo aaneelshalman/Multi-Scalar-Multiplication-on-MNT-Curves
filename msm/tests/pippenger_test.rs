@@ -4,6 +4,7 @@ use msm::operations::add_points;
 use ark_mnt4_298::G1Projective;
 use ark_ff::Zero;
 use ark_std::{test_rng, UniformRand};
+use rand::{Rng, thread_rng};
 
 #[test]
 fn test_pippenger_with_zero_scalars() {
@@ -12,17 +13,6 @@ fn test_pippenger_with_zero_scalars() {
     let scalars = vec![0, 0];
     let window_size = 2; // Example window size
     assert_eq!(pippenger(&points, &scalars, window_size), G1Projective::zero(), "Pippenger with zero scalars should return the zero point");
-}
-
-#[test]
-fn test_pippenger_with_mixed_scalars() {
-    let mut rng = test_rng();
-    let points = vec![G1Projective::rand(&mut rng), G1Projective::rand(&mut rng)];
-    let scalars = vec![1, 2];
-    let window_size = 2;
-    // Compare against result from naive msm
-    let expected_result = naive_msm(&points, &scalars);
-    assert_eq!(pippenger(&points, &scalars, window_size), expected_result, "Pippenger with mixed scalars failed");
 }
 
 #[test]
@@ -70,6 +60,12 @@ fn test_pippenger_with_different_lengths() {
 fn generate_points(num_points: usize) -> Vec<G1Projective> {
     let mut rng = test_rng();
     (0..num_points).map(|_| G1Projective::rand(&mut rng)).collect()
+}
+
+// Helper function to generate n random scalars of type u32
+fn generate_scalars(num_scalars: usize) -> Vec<u32> {
+    let mut rng = thread_rng();
+    (0..num_scalars).map(|_| rng.gen_range(0..65536)).collect()
 }
 
 #[test]
@@ -157,10 +153,36 @@ fn test_combine_msm() {
 }
 
 #[test]
-// Comprehensive test for the Pippenger's algorithm
+// "Comprehensive test with 10 points"
 fn test_pippenger_algorithm() {
     let points = generate_points(10);
-    let scalars: Vec<u32> = (0..10).collect();
+    let scalars: Vec<u32> = generate_scalars(10);
+    let window_size = 2;
+
+    let msm_result = pippenger(&points, &scalars, window_size);
+    // Compare against result from naive msm
+    let expected_result = naive_msm(&points, &scalars);
+    assert_eq!(msm_result, expected_result, "Pippenger algorithm did not match expected result");
+}
+
+#[test]
+// "Comprehensive test with 100 points"
+fn test_pippenger_algorithm_1() {
+    let points = generate_points(100);
+    let scalars: Vec<u32> = generate_scalars(100);
+    let window_size = 2;
+
+    let msm_result = pippenger(&points, &scalars, window_size);
+    // Compare against result from naive msm
+    let expected_result = naive_msm(&points, &scalars);
+    assert_eq!(msm_result, expected_result, "Pippenger algorithm did not match expected result");
+}
+
+#[test]
+// "Comprehensive test with 1000 points"
+fn test_pippenger_algorithm_2() {
+    let points = generate_points(1000);
+    let scalars: Vec<u32> = generate_scalars(1000);
     let window_size = 2;
 
     let msm_result = pippenger(&points, &scalars, window_size);
