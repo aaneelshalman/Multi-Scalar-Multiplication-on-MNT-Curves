@@ -6,7 +6,7 @@ extern crate ark_std;
 mod operations;
 mod pippenger;
 
-use ark_mnt4_298::{Fr, G1Projective};
+use ark_mnt4_298::{G1Projective, Fr};
 use ark_std::{UniformRand, test_rng};
 use operations::{add_points, scalar_multiply};
 
