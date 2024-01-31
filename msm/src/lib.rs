@@ -6,3 +6,4 @@ extern crate ark_ec;
 pub mod operations;
 pub mod pippenger;
 pub mod naive;
+pub mod parallel_pippenger;
