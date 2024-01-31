@@ -52,5 +52,4 @@ fn main() {
     println!("Naive Execution Time: {:?}", duration_naive);
     println!("Pippenger Execution Time: {:?}", duration_pippenger);
     println!("Parallel Execution Time: {:?}", duration_parallel);
-
 }
