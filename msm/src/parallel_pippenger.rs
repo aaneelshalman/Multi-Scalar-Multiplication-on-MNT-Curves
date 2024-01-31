@@ -60,7 +60,7 @@ pub fn parallel_combine_partitioned_msm(partitions: &[ParallelMsmPartition], poi
 
         let handle = thread::spawn(move || {
             let msm_result = parallel_compute_msm_for_partition(&partition_clone, &points_clone);
-            (msm_result, bit_index)  // Return both the result and the bit_index
+            (msm_result, bit_index)
         });
 
         handles.push(handle);
