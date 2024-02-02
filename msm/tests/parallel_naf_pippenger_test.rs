@@ -1,4 +1,4 @@
-use msm::parallel_naf_pippenger::{parallel_naf_pippenger, ParallelNafMsmPartition, parallel_naf_partition_msm, parallel_naf_compute_msm_for_partition, parallel_naf_combine_partitioned_msm};
+use msm::parallel_naf_pippenger::{ParallelNafMsmPartitionDecomposed, parallel_naf_decompose_partitions, parallel_naf_pippenger, ParallelNafMsmPartition, parallel_naf_partition_msm, parallel_naf_compute_msm_for_partition, parallel_naf_combine_partitioned_msm};
 use msm::naive::naive_msm;
 use msm::operations::add_points;
 use ark_mnt4_298::G1Projective;
@@ -126,17 +126,72 @@ fn test_parallel_naf_partition_msm_3() {
     }
 }
 
+// Test for Signed Integer Decomposition
+#[test]
+fn test_parallel_naf_decompose_partitions() {
+    let window_size = 2; // Example window size
+    // Define a partition with window values within the correct range for a window_size of 2
+    let partitions = vec![ParallelNafMsmPartition { bit_index: 0, window_values: vec![3, 1, 2] }]; // Adjusted values
+    
+    // Perform decomposition
+    let decomposed_partitions = parallel_naf_decompose_partitions(&partitions, window_size);
+    
+    let expected_decomposed_values = vec![vec![1, -2, -2, -2]];
+    
+    // Compare decomposed window values against expected values
+    decomposed_partitions.iter().zip(expected_decomposed_values.iter()).for_each(|(decomposed, expected)| {
+        assert_eq!(decomposed.window_values, *expected, "Decomposition did not produce the expected result");
+    });
+}
+
+
 #[test]
 // Test for Step 2: Compute MSM for each partition
 fn test_parallel_naf_compute_msm_for_partition() {
     let points = generate_points(10);
-    let partition = ParallelNafMsmPartition { bit_index: 0, window_values: vec![1, 0, 1, 0, 1, 0, 1, 0, 1, 0] };
+    let partitions = ParallelNafMsmPartition { bit_index: 0, window_values: vec![1, 0, 1, 0, 1, 0, 1, 0, 1, 0] };
+    let window_size = 2;
+    let decomposed_partitions = parallel_naf_decompose_partitions(&[partitions], window_size);
 
-    let msm_result = parallel_naf_compute_msm_for_partition(&partition, &points);
-    // Compare against result by adding points
+    // Initialize an accumulator for MSM results from each partition
+    let mut total_msm_result = G1Projective::zero();
+
+    // Iterate over each decomposed partition and compute its MSM contribution
+    for decomposed_partition in decomposed_partitions.iter() {
+        let msm_result = parallel_naf_compute_msm_for_partition(decomposed_partition, &points);
+        // Accumulate the MSM result from each partition
+        total_msm_result = add_points(total_msm_result, msm_result);
+    }
+
+    // Compare against the expected result
     let expected_result = points.iter().step_by(2).fold(G1Projective::zero(), |acc, &p| add_points(acc, p));
-    assert_eq!(msm_result, expected_result, "MSM computation for partition failed");
+    assert_eq!(total_msm_result, expected_result, "MSM computation for partition failed");
 }
+
+// Test for Step 2: Compute MSM for each partition
+#[test]
+fn test_parallel_naf_compute_msm_for_partition_2() {
+    let points = generate_points(10); // Generate 10 random points
+    // Define a decomposed partition with both positive and negative window values
+    let decomposed_partition = ParallelNafMsmPartitionDecomposed { bit_index: 0, window_values: vec![1, 0, -1, 0, 1, 0, -1, 0, 1, 0] };
+    
+    // Compute MSM for the defined partition
+    let msm_result = parallel_naf_compute_msm_for_partition(&decomposed_partition, &points);
+    
+    // Manually calculate the expected MSM result
+    let expected_result = points.iter().enumerate().fold(G1Projective::zero(), |acc, (i, &p)| {
+        // For each point, add or subtract from the accumulator based on the sign of the corresponding window value
+        if i % 2 == 0 {
+            add_points(acc, -p)
+        } else {
+            add_points(acc, p)
+        }
+    });
+
+    // Compare the computed MSM result against the expected result
+    assert_eq!(msm_result, expected_result, "MSM computation with negative values failed");
+}
+
 
 #[test]
 // Test for Step 3: Compute the final MSM result by combining all partitions
@@ -146,7 +201,8 @@ fn test_parallel_naf_combine_msm() {
     let window_size = 2;
 
     let partitions = parallel_naf_partition_msm(&scalars, window_size);
-    let combined_result = parallel_naf_combine_partitioned_msm(&partitions, &points);
+    let decomposed_partitions = parallel_naf_decompose_partitions(&partitions, window_size);
+    let combined_result = parallel_naf_combine_partitioned_msm(&decomposed_partitions, &points);
     // Compare against result from naive msm
     let expected_result = naive_msm(&points, &scalars);
     assert_eq!(combined_result, expected_result, "Combined MSM result is incorrect");
