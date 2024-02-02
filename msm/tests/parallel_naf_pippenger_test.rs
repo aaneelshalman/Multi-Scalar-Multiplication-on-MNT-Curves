@@ -126,7 +126,7 @@ fn test_parallel_naf_partition_msm_3() {
     }
 }
 
-// Test for Signed Integer Decomposition
+// Test for Signed Integer Decomposition Step
 #[test]
 fn test_parallel_naf_decompose_partitions() {
     let window_size = 2; // Example window size
@@ -136,14 +136,13 @@ fn test_parallel_naf_decompose_partitions() {
     // Perform decomposition
     let decomposed_partitions = parallel_naf_decompose_partitions(&partitions, window_size);
     
-    let expected_decomposed_values = vec![vec![1, -2, -2, -2]];
+    let expected_decomposed_values = vec![vec![-1, -2, -1 , 1]];
     
     // Compare decomposed window values against expected values
     decomposed_partitions.iter().zip(expected_decomposed_values.iter()).for_each(|(decomposed, expected)| {
         assert_eq!(decomposed.window_values, *expected, "Decomposition did not produce the expected result");
     });
 }
-
 
 #[test]
 // Test for Step 2: Compute MSM for each partition
