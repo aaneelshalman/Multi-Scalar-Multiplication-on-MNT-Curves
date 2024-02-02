@@ -40,32 +40,29 @@ pub fn parallel_naf_partition_msm(scalars: &[u32], window_size: usize) -> Vec<Pa
 }
 
 pub fn parallel_naf_decompose_partitions(partitions: &[ParallelNafMsmPartition], window_size: usize) -> Vec<ParallelNafMsmPartitionDecomposed> {
-    let base = 2 ^ window_size;
-    let threshold = 2 ^ (window_size -1);
+    let base = 2u32.pow(window_size as u32);
+    let threshold = 2u32.pow(window_size as u32 - 1);
     
     let decomposed_partitions: Vec<ParallelNafMsmPartitionDecomposed> = partitions.iter().map(|partition| {
-        let mut decomposed_window_values: Vec<i64> = Vec::with_capacity(partition.window_values.len());
+        let mut decomposed_window_values: Vec<i64> = Vec::with_capacity(partition.window_values.len() + 1); // +1 in case we need to append an extra value for the carry
 
-        // Initialize carry outside the window_values loop
         let mut carry: i64 = 0;
 
         for &value in partition.window_values.iter() {
             let adjusted_value = value as i64 + carry;
             carry = 0; // Reset carry for each window_value
 
-            let decomposed_value = if adjusted_value >= threshold as i64 {
-                carry = 1; // Prepare carry for the next value if adjustment is made
-                adjusted_value - base as i64
+            if adjusted_value >= threshold as i64 {
+                carry = 1; // Indicate a carry for the next value
+                decomposed_window_values.push(adjusted_value - base as i64);
             } else {
-                adjusted_value
-            };
-
-            decomposed_window_values.push(decomposed_value);
+                decomposed_window_values.push(adjusted_value);
+            }
         }
 
-        // Ensure the last value does not carry over undesirably
-        if carry == 1 && !decomposed_window_values.is_empty() {
-            *decomposed_window_values.last_mut().unwrap() += base as i64;
+        // Handle outstanding carry by appending an extra value if necessary
+        if carry == 1 {
+            decomposed_window_values.push(1); // Append '1' to represent the final carry
         }
 
         ParallelNafMsmPartitionDecomposed {
@@ -76,7 +73,6 @@ pub fn parallel_naf_decompose_partitions(partitions: &[ParallelNafMsmPartition],
 
     decomposed_partitions
 }
-
 
 pub fn parallel_naf_compute_msm_for_partition(partition: &ParallelNafMsmPartitionDecomposed, points: &[G1Projective]) -> G1Projective {
     let mut buckets: HashMap<u32, Vec<(usize, i64)>> = HashMap::new(); // Use magnitude for keys and keep sign with index
