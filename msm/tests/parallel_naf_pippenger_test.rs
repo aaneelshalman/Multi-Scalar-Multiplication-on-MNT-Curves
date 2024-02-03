@@ -12,7 +12,7 @@ fn test_parallel_naf_pippenger_with_zero_scalars() {
     let mut rng = test_rng();
     let points = vec![G1Projective::rand(&mut rng), G1Projective::rand(&mut rng)];
     let scalars = vec![0, 0];
-    let window_size = 2; // Example window size
+    let window_size = 2;
     assert_eq!(parallel_naf_pippenger(&points, &scalars, window_size), G1Projective::zero(), "Pippenger with zero scalars should return the zero point");
 }
 
@@ -132,12 +132,12 @@ fn test_parallel_naf_partition_msm_3() {
 fn test_parallel_naf_decompose_partitions() {
     let window_size = 2; // Example window size
     // Define a partition with window values within the correct range for a window_size of 2
-    let partitions = vec![ParallelNafMsmPartition { bit_index: 0, window_values: vec![3, 1, 2, 3, 2] }]; // Adjusted values
+    let partitions = vec![ParallelNafMsmPartition { bit_index: 0, window_values: vec![3, 1, 2, 3, 1] }]; // Adjusted values
     
     // Perform decomposition
     let decomposed_partitions = parallel_naf_decompose_partitions(&partitions, window_size);
     
-    let expected_decomposed_values = vec![vec![-1, 1, -2, -1, -2]];
+    let expected_decomposed_values = vec![vec![-1, 1, -2, -1, 1]];
     
     // Compare decomposed window values against expected values
     decomposed_partitions.iter().zip(expected_decomposed_values.iter()).for_each(|(decomposed, expected)| {
