@@ -9,6 +9,7 @@ mod pippenger;
 mod parallel_pippenger;
 mod naive;
 mod parallel_naf_pippenger;
+mod naf_pippenger;
 
 use ark_mnt4_298::G1Projective;
 use ark_std::{UniformRand, test_rng};
@@ -17,6 +18,7 @@ use std::time::Instant;
 use parallel_pippenger::parallel_pippenger;
 use pippenger::pippenger;
 use naive::naive_msm;
+use naf_pippenger::naf_pippenger;
 use parallel_naf_pippenger::parallel_naf_pippenger;
 // use operations::{add_points, scalar_multiply};
 
@@ -49,15 +51,21 @@ fn main() {
     let duration_parallel = start.elapsed();
 
     let start = Instant::now();
+    let result_naf = naf_pippenger(&points, &scalars, window_size);
+    let duration_naf = start.elapsed();
+
+    let start = Instant::now();
     let result_parallel_naf = parallel_naf_pippenger(&points, &scalars, window_size);
     let duration_parallel_naf = start.elapsed();
 
     assert_eq!(result_naive, result_pippenger, "Results of pippenger and naive MSM should match");
     assert_eq!(result_naive, result_parallel, "Results of pippenger with parallelism and naive MSM should match");
+    assert_eq!(result_naive, result_naf, "Results of pippenger with 2-NAF Decomposition should match with naive MSM");
     assert_eq!(result_naive, result_parallel_naf, "Results of pippenger with 2-NAF Decomposition and parallelism should match with naive MSM");
 
     println!("Naive Execution Time: {:?}", duration_naive);
     println!("Pippenger Execution Time: {:?}", duration_pippenger);
     println!("Parallel Execution Time: {:?}", duration_parallel);
+    println!("NAF Execution Time: {:?}", duration_naf);
     println!("Parallel NAF Execution Time: {:?}", duration_parallel_naf);
 }
