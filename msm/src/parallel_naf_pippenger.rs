@@ -1,7 +1,9 @@
 use crate::operations::{add_points, scalar_multiply};
+use ::ark_ff::Field;
 use ark_ff::Zero;
 use ark_mnt4_298::{G1Projective, Fr};
 use std::collections::HashMap;
+use std::ops::Neg;
 use std::thread;
 
 // Main function for Pippenger with parallelism
@@ -16,6 +18,15 @@ pub fn parallel_naf_pippenger(points: &[G1Projective], scalars: &[u32], window_s
 pub struct ParallelNafMsmPartition {
     pub bit_index: usize,
     pub window_values: Vec<u32>,
+}
+
+impl Clone for ParallelNafMsmPartition {
+    fn clone(&self) -> ParallelNafMsmPartition {
+        ParallelNafMsmPartition {
+            bit_index: self.bit_index,
+            window_values: self.window_values.clone(),
+        }
+    }
 }
 
 pub struct ParallelNafMsmPartitionDecomposed {
@@ -41,60 +52,63 @@ pub fn parallel_naf_partition_msm(scalars: &[u32], window_size: usize) -> Vec<Pa
 
 pub fn parallel_naf_decompose_partitions(partitions: &[ParallelNafMsmPartition], window_size: usize) -> Vec<ParallelNafMsmPartitionDecomposed> {
     let base = 2u32.pow(window_size as u32);
-    let threshold = 2u32.pow(window_size as u32 - 1);
-    
-    let decomposed_partitions: Vec<ParallelNafMsmPartitionDecomposed> = partitions.iter().map(|partition| {
-        let mut decomposed_window_values: Vec<i64> = Vec::with_capacity(partition.window_values.len() + 1); // +1 in case we need to append an extra value for the carry
+    let threshold = base / 2; // Equivalent to 2^(window_size-1)
 
-        let mut carry: i64 = 0;
+    // Extend partitions to include an extra bit index for overflow handling
+    let mut extended_partitions = partitions.to_vec();
+    let last_bit_index = extended_partitions.last().map_or(0, |p| p.bit_index + window_size);
+    extended_partitions.push(ParallelNafMsmPartition {
+        bit_index: last_bit_index,
+        window_values: vec![0; partitions[0].window_values.len()], // Initialize with zeros
+    });
 
-        for &value in partition.window_values.iter() {
-            let adjusted_value = value as i64 + carry;
-            carry = 0; // Reset carry for each window_value
+    extended_partitions.iter().map(|partition| {
+        let mut decomposed_window_values = vec![0i64; partition.window_values.len()]; // Pre-allocate space for decomposed values
 
-            if adjusted_value >= threshold as i64 {
-                carry = 1; // Indicate a carry for the next value
-                decomposed_window_values.push(adjusted_value - base as i64);
+        // Iterate through window values correctly for signed integer decomposition
+        for (i, &window_value) in partition.window_values.iter().enumerate() {
+            let signed_value = if window_value >= threshold {
+                // Adjust values above threshold by subtracting 'base' and adding 1 to the next value if not the last
+                if i < partition.window_values.len() - 1 {
+                    decomposed_window_values[i + 1] += 1; // Add carry to the next value
+                }
+                window_value as i64 - base as i64
             } else {
-                decomposed_window_values.push(adjusted_value);
-            }
-        }
-
-        // Handle outstanding carry by appending an extra value if necessary
-        if carry == 1 {
-            decomposed_window_values.push(1); // Append '1' to represent the final carry
+                window_value as i64
+            };
+            decomposed_window_values[i] = signed_value;
         }
 
         ParallelNafMsmPartitionDecomposed {
             bit_index: partition.bit_index,
             window_values: decomposed_window_values,
         }
-    }).collect();
-
-    decomposed_partitions
+    }).collect()
 }
+
 
 pub fn parallel_naf_compute_msm_for_partition(partition: &ParallelNafMsmPartitionDecomposed, points: &[G1Projective]) -> G1Projective {
     let mut buckets: HashMap<u32, Vec<(usize, i64)>> = HashMap::new(); // Use magnitude for keys and keep sign with index
     
     // Assign points to buckets based on the absolute value of their window value, but keep track of the original value's sign
     for (index, &value) in partition.window_values.iter().enumerate() {
-        let abs_value = value.abs() as u32; // Use absolute value for bucket key
-        buckets.entry(abs_value).or_insert_with(Vec::new).push((index, value));
+        if value !=0 {
+            let abs_value = value.abs() as u32; // Use absolute value for bucket key
+            buckets.entry(abs_value).or_insert_with(Vec::new).push((index, value));
+        }    
     }
 
     let mut msm_result = G1Projective::zero();
-    // Iterate over buckets to compute the MSM contribution of each
     for (&abs_value, index_sign_pairs) in &buckets {
         let sum_of_points: G1Projective = index_sign_pairs.iter()
             .map(|&(i, sign)| {
                 let mut point = points[i];
-                if sign < 0 { point = -point; } // Negate the point if the original value was negative
+                if sign < 0 { point = point.neg(); } // Negate the point if the original value was negative
                 point
             })
             .fold(G1Projective::zero(), |acc, p| add_points(acc, p));
         // Multiply the aggregated point by its scalar and add to the result
-        msm_result = add_points(msm_result, scalar_multiply(sum_of_points, Fr::from(abs_value as u64)));
+        msm_result = add_points(msm_result, scalar_multiply(sum_of_points, Fr::from(abs_value as u32)));
     }
 
     msm_result
@@ -120,9 +134,11 @@ pub fn parallel_naf_combine_partitioned_msm(partitions: &[ParallelNafMsmPartitio
     // Collect results from each thread and combine
     let mut final_result = G1Projective::zero();
     for handle in handles {
-        let (partition_result, bit_index) = handle.join().unwrap();
-        final_result = add_points(final_result, scalar_multiply(partition_result, Fr::from(1 << bit_index)));
-    }
+    let (partition_result, bit_index) = handle.join().unwrap();
+    // Convert bit_index to 2^bit_index within the scalar field directly
+    let exponentiation_result = Fr::from(2).pow(&[bit_index as u64, 0, 0, 0]); // Assuming Fr supports pow
+    final_result = add_points(final_result, scalar_multiply(partition_result, exponentiation_result));
+}
 
     final_result
 }
