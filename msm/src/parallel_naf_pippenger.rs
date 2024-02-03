@@ -6,7 +6,7 @@ use std::collections::HashMap;
 use std::ops::Neg;
 use std::thread;
 
-// Main function for Pippenger with parallelism
+// Main function for Pippenger with parallelism and 2-NAF Decomposition
 pub fn parallel_naf_pippenger(points: &[G1Projective], scalars: &[u32], window_size: usize) -> G1Projective {
     assert_eq!(points.len(), scalars.len(), "Points and scalars must have the same length");
     
@@ -51,68 +51,85 @@ pub fn parallel_naf_partition_msm(scalars: &[u32], window_size: usize) -> Vec<Pa
 }
 
 pub fn parallel_naf_decompose_partitions(partitions: &[ParallelNafMsmPartition], window_size: usize) -> Vec<ParallelNafMsmPartitionDecomposed> {
-    let base = 2u32.pow(window_size as u32);
-    let threshold = base / 2; // Equivalent to 2^(window_size-1)
+    let base = 2u32.pow(window_size as u32); // 2^(window_size)
+    let threshold = base / 2; // 2^(window_size-1)
 
-    // Extend partitions to include an extra bit index for overflow handling
-    let mut extended_partitions = partitions.to_vec();
-    let last_bit_index = extended_partitions.last().map_or(0, |p| p.bit_index + window_size);
-    extended_partitions.push(ParallelNafMsmPartition {
+    // Initialize decomposed partitions with the same structure but empty window values
+    let mut decomposed_partitions: Vec<ParallelNafMsmPartitionDecomposed> = partitions.iter()
+        .map(|p| ParallelNafMsmPartitionDecomposed {
+            bit_index: p.bit_index,
+            window_values: vec![0i64; p.window_values.len()], // Initialize with zeros
+        })
+        .collect();
+
+    // Append an extra partition for overflow handling
+    let last_bit_index = partitions.last().unwrap().bit_index + window_size;
+    decomposed_partitions.push(ParallelNafMsmPartitionDecomposed {
         bit_index: last_bit_index,
-        window_values: vec![0; partitions[0].window_values.len()], // Initialize with zeros
+        window_values: vec![0i64; partitions[0].window_values.len()], // Initialize with zeros for overflow handling
     });
 
-    extended_partitions.iter().map(|partition| {
-        let mut decomposed_window_values = vec![0i64; partition.window_values.len()]; // Pre-allocate space for decomposed values
+    // Iterate through each position of window values across all partitions, not window_values in the same bit_index
+    for i in 0..partitions[0].window_values.len() {
+        let mut carry = 0i64;
 
-        // Iterate through window values correctly for signed integer decomposition
-        for (i, &window_value) in partition.window_values.iter().enumerate() {
-            let signed_value = if window_value >= threshold {
-                // Adjust values above threshold by subtracting 'base' and adding 1 to the next value if not the last
-                if i < partition.window_values.len() - 1 {
-                    decomposed_window_values[i + 1] += 1; // Add carry to the next value
+        for j in 0..partitions.len() {
+            let window_value = partitions[j].window_values[i] as i64;
+            let adjusted_value = window_value + carry;
+            carry = 0; // Reset carry for the next window value
+
+            if adjusted_value >= threshold as i64 {
+                decomposed_partitions[j].window_values[i] = adjusted_value - base as i64;
+                // Forward carry to the next partition's same position
+                if j < partitions.len() - 1 {
+                    carry = 1;
                 }
-                window_value as i64 - base as i64
             } else {
-                window_value as i64
-            };
-            decomposed_window_values[i] = signed_value;
+                decomposed_partitions[j].window_values[i] = adjusted_value;
+            }
         }
 
-        ParallelNafMsmPartitionDecomposed {
-            bit_index: partition.bit_index,
-            window_values: decomposed_window_values,
+        if carry > 0 {
+            decomposed_partitions[partitions.len()].window_values[i] += carry;
         }
-    }).collect()
+    }
+
+    decomposed_partitions
 }
-
 
 pub fn parallel_naf_compute_msm_for_partition(partition: &ParallelNafMsmPartitionDecomposed, points: &[G1Projective]) -> G1Projective {
     let mut buckets: HashMap<u32, Vec<(usize, i64)>> = HashMap::new(); // Use magnitude for keys and keep sign with index
     
     // Assign points to buckets based on the absolute value of their window value, but keep track of the original value's sign
     for (index, &value) in partition.window_values.iter().enumerate() {
-        if value !=0 {
+        if value != 0 {
             let abs_value = value.abs() as u32; // Use absolute value for bucket key
             buckets.entry(abs_value).or_insert_with(Vec::new).push((index, value));
-        }    
+        }
     }
 
     let mut msm_result = G1Projective::zero();
     for (&abs_value, index_sign_pairs) in &buckets {
         let sum_of_points: G1Projective = index_sign_pairs.iter()
             .map(|&(i, sign)| {
+                if i >= points.len() {
+                    return G1Projective::zero(); // Return a zero point to avoid panic
+                }
+
                 let mut point = points[i];
-                if sign < 0 { point = point.neg(); } // Negate the point if the original value was negative
+                if sign < 0 {
+                    point = point.neg(); // Negate the point if the original value was negative
+                }
                 point
             })
             .fold(G1Projective::zero(), |acc, p| add_points(acc, p));
-        // Multiply the aggregated point by its scalar and add to the result
+
         msm_result = add_points(msm_result, scalar_multiply(sum_of_points, Fr::from(abs_value as u32)));
     }
 
     msm_result
 }
+
 
 pub fn parallel_naf_combine_partitioned_msm(partitions: &[ParallelNafMsmPartitionDecomposed], points: &[G1Projective]) -> G1Projective {
     let mut handles = Vec::new();
