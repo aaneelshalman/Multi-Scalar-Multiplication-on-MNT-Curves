@@ -59,8 +59,10 @@ pub fn compute_msm_for_partition(partition: &MsmPartition, points: &[G1Projectiv
 
     // Iterating over each window value and its index
     for (index, &value) in partition.window_values.iter().enumerate() {
+        if value != 0 {
         // Grouping indexes with the same scalar value
         buckets.entry(value).or_insert_with(Vec::new).push(index);
+        }
     }
 
     // Variable to store the computed MSM for this partition
