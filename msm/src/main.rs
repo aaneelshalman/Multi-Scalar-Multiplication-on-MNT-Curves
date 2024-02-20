@@ -63,9 +63,9 @@ fn main() {
     assert_eq!(result_naive, result_naf, "Results of pippenger with 2-NAF Decomposition should match with naive MSM");
     assert_eq!(result_naive, result_parallel_naf, "Results of pippenger with 2-NAF Decomposition and parallelism should match with naive MSM");
 
-    println!("Naive Execution Time: {:?}", duration_naive);
-    println!("Pippenger Execution Time: {:?}", duration_pippenger);
-    println!("Parallel Execution Time: {:?}", duration_parallel);
-    println!("NAF Execution Time: {:?}", duration_naf);
-    println!("Parallel NAF Execution Time: {:?}", duration_parallel_naf);
+    println!("Naive: {:?}", duration_naive);
+    println!("Pippenger: {:?}", duration_pippenger);
+    println!("Parallel: {:?}", duration_parallel);
+    println!("NAF: {:?}", duration_naf);
+    println!("Parallel NAF: {:?}", duration_parallel_naf);
 }
