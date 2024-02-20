@@ -35,7 +35,9 @@ pub fn parallel_partition_msm(scalars: &[u32], window_size: usize) -> Vec<Parall
 pub fn parallel_compute_msm_for_partition(partition: &ParallelMsmPartition, points: &[G1Projective]) -> G1Projective {
     let mut buckets: HashMap<u32, Vec<usize>> = HashMap::new();
     for (index, &value) in partition.window_values.iter().enumerate() {
+        if value != 0 {
         buckets.entry(value).or_insert_with(Vec::new).push(index);
+        }
     }
 
     let mut msm_result = G1Projective::zero();
