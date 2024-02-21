@@ -13,7 +13,6 @@ pub fn parallel_naf_pippenger(points: &[G1Projective], scalars: &[u32], window_s
     let decomposed_partitions = parallel_naf_decompose_partitions(&partitions, window_size);
     parallel_naf_combine_partitioned_msm(&decomposed_partitions, points)
 }
-
 pub struct ParallelNafMsmPartition {
     pub bit_index: usize,
     pub window_values: Vec<u32>,
@@ -27,7 +26,6 @@ impl Clone for ParallelNafMsmPartition {
         }
     }
 }
-
 pub struct ParallelNafMsmPartitionDecomposed {
     pub bit_index: usize,
     pub window_values: Vec<i64>, // New struct adjusted for signed integer decomposition
