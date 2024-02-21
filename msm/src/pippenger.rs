@@ -91,35 +91,12 @@ pub fn combine_partitioned_msm(partitions: &[MsmPartition], points: &[G1Projecti
     // Iterating over each partition
     for partition in partitions {
         // Computing MSM for the current partition
-        let mut partition_msm = compute_msm_for_partition(partition, points);
+        let partition_msm = compute_msm_for_partition(partition, points);
 
-        // Iteratively double the partition MSM for bit_index times
-        for _ in 0..partition.bit_index {
-            partition_msm = add_points(partition_msm, partition_msm);
-        }
-
-        // Adding the partition MSM to the final result
-        final_result = add_points(final_result, partition_msm);
+        // Scaling the partition MSM by 2^bit_index and adding it to the final result
+        final_result = add_points(final_result, scalar_multiply(partition_msm, Fr::from(1 << partition.bit_index)));
     }
 
     // Returning the final combined MSM result
     final_result
 }
-
-// // Step 3: Compute the final MSM result by combining all partitions
-// pub fn combine_partitioned_msm(partitions: &[MsmPartition], points: &[G1Projective]) -> G1Projective {
-//     // Variable to store the final MSM result
-//     let mut final_result = G1Projective::zero();
-
-//     // Iterating over each partition
-//     for partition in partitions {
-//         // Computing MSM for the current partition
-//         let partition_msm = compute_msm_for_partition(partition, points);
-
-//         // Scaling the partition MSM by 2^bit_index and adding it to the final result
-//         final_result = add_points(final_result, scalar_multiply(partition_msm, Fr::from(1 << partition.bit_index)));
-//     }
-
-//     // Returning the final combined MSM result
-//     final_result
-// }

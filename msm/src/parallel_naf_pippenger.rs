@@ -1,4 +1,5 @@
 use crate::operations::{add_points, scalar_multiply};
+use ::ark_ff::Field;
 use ark_ff::Zero;
 use ark_mnt4_298::{G1Projective, Fr};
 use std::collections::HashMap;
@@ -136,7 +137,6 @@ pub fn parallel_naf_compute_msm_for_partition(partition: &ParallelNafMsmPartitio
     msm_result
 }
 
-
 pub fn parallel_naf_combine_partitioned_msm(partitions: &[ParallelNafMsmPartitionDecomposed], points: &[G1Projective]) -> G1Projective {
     let mut handles = Vec::new();
 
@@ -144,10 +144,11 @@ pub fn parallel_naf_combine_partitioned_msm(partitions: &[ParallelNafMsmPartitio
     for partition in partitions {
         let partition_clone = partition.clone();
         let points_clone = points.to_vec();
+        let bit_index = partition.bit_index;
 
         let handle = thread::spawn(move || {
             let msm_result = parallel_naf_compute_msm_for_partition(&partition_clone, &points_clone);
-            (msm_result, partition_clone.bit_index)
+            (msm_result, bit_index)
         });
 
         handles.push(handle);
@@ -156,45 +157,11 @@ pub fn parallel_naf_combine_partitioned_msm(partitions: &[ParallelNafMsmPartitio
     // Collect results from each thread and combine
     let mut final_result = G1Projective::zero();
     for handle in handles {
-        let (mut partition_result, bit_index) = handle.join().unwrap();
-        
-        // Iteratively double the partition result bit_index times
-        for _ in 0..bit_index {
-            partition_result = add_points(partition_result, partition_result);
-        }
-
-        // Add the iteratively doubled result to the final result
-        final_result = add_points(final_result, partition_result);
-    }
+    let (partition_result, bit_index) = handle.join().unwrap();
+    // Convert bit_index to 2^bit_index within the scalar field directly
+    let exponentiation_result = Fr::from(2).pow(&[bit_index as u64, 0, 0, 0]); // Assuming Fr supports pow
+    final_result = add_points(final_result, scalar_multiply(partition_result, exponentiation_result));
+}
 
     final_result
 }
-
-// pub fn parallel_naf_combine_partitioned_msm(partitions: &[ParallelNafMsmPartitionDecomposed], points: &[G1Projective]) -> G1Projective {
-//     let mut handles = Vec::new();
-
-//     // Spawn a thread for each partition
-//     for partition in partitions {
-//         let partition_clone = partition.clone();
-//         let points_clone = points.to_vec();
-//         let bit_index = partition.bit_index;
-
-//         let handle = thread::spawn(move || {
-//             let msm_result = parallel_naf_compute_msm_for_partition(&partition_clone, &points_clone);
-//             (msm_result, bit_index)
-//         });
-
-//         handles.push(handle);
-//     }
-
-//     // Collect results from each thread and combine
-//     let mut final_result = G1Projective::zero();
-//     for handle in handles {
-//     let (partition_result, bit_index) = handle.join().unwrap();
-//     // Convert bit_index to 2^bit_index within the scalar field directly
-//     let exponentiation_result = Fr::from(2).pow(&[bit_index as u64, 0, 0, 0]); // Assuming Fr supports pow
-//     final_result = add_points(final_result, scalar_multiply(partition_result, exponentiation_result));
-// }
-
-//     final_result
-// }
