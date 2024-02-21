@@ -17,6 +17,15 @@ pub struct ParallelMsmPartition {
     pub window_values: Vec<u32>,
 }
 
+impl Clone for ParallelMsmPartition {
+    fn clone(&self) -> ParallelMsmPartition {
+        ParallelMsmPartition {
+            bit_index: self.bit_index,
+            window_values: self.window_values.clone(),
+        }
+    }
+}
+
 pub fn parallel_partition_msm(scalars: &[u32], window_size: usize) -> Vec<ParallelMsmPartition> {
     let num_partitions = (32 + window_size - 1) / window_size;
     let mut partitions = Vec::new();
@@ -71,18 +80,43 @@ pub fn parallel_combine_partitioned_msm(partitions: &[ParallelMsmPartition], poi
     // Collect results from each thread and combine
     let mut final_result = G1Projective::zero();
     for handle in handles {
-        let (partition_result, bit_index) = handle.join().unwrap();
-        final_result = add_points(final_result, scalar_multiply(partition_result, Fr::from(1 << bit_index)));
+        let (mut partition_result, bit_index) = handle.join().unwrap();
+        
+        // Iteratively double the partition result bit_index times
+        for _ in 0..bit_index {
+            partition_result = add_points(partition_result, partition_result);
+        }
+
+        // Add the iteratively doubled result to the final result
+        final_result = add_points(final_result, partition_result);
     }
 
     final_result
 }
 
-impl Clone for ParallelMsmPartition {
-    fn clone(&self) -> ParallelMsmPartition {
-        ParallelMsmPartition {
-            bit_index: self.bit_index,
-            window_values: self.window_values.clone(),
-        }
-    }
-}
+// pub fn parallel_combine_partitioned_msm(partitions: &[ParallelMsmPartition], points: &[G1Projective]) -> G1Projective {
+//     let mut handles = Vec::new();
+
+//     // Spawn a thread for each partition
+//     for partition in partitions {
+//         let partition_clone = partition.clone();
+//         let points_clone = points.to_vec();
+//         let bit_index = partition.bit_index;
+
+//         let handle = thread::spawn(move || {
+//             let msm_result = parallel_compute_msm_for_partition(&partition_clone, &points_clone);
+//             (msm_result, bit_index)
+//         });
+
+//         handles.push(handle);
+//     }
+
+//     // Collect results from each thread and combine
+//     let mut final_result = G1Projective::zero();
+//     for handle in handles {
+//         let (partition_result, bit_index) = handle.join().unwrap();
+//         final_result = add_points(final_result, scalar_multiply(partition_result, Fr::from(1 << bit_index)));
+//     }
+
+//     final_result
+// }
