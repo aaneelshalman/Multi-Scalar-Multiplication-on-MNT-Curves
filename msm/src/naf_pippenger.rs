@@ -1,5 +1,5 @@
 use crate::operations::{add_points, scalar_multiply};
-use ::ark_ff::Field;
+use ark_ec::Group;
 use ark_ff::Zero;
 use ark_mnt4_298::{G1Projective, Fr};
 use std::collections::HashMap;
@@ -132,7 +132,14 @@ pub fn naf_compute_msm_for_partition(partition: &NafMsmPartitionDecomposed, poin
 
 pub fn naf_combine_partitioned_msm(partitions: &[NafMsmPartitionDecomposed], points: &[G1Projective]) -> G1Projective {
     partitions.iter().fold(G1Projective::zero(), |acc, partition| {
-        let partition_msm = naf_compute_msm_for_partition(partition, points);
-        add_points(acc, scalar_multiply(partition_msm, Fr::from(2).pow(&[partition.bit_index as u64, 0, 0, 0])))
+        let mut partition_msm = naf_compute_msm_for_partition(partition, points);
+
+        // Iteratively double the partition result bit_index times
+        for _ in 0..partition.bit_index {
+            partition_msm = partition_msm.double();
+        }
+
+        // Add the iteratively doubled result to the accumulated result
+        add_points(acc, partition_msm)
     })
 }

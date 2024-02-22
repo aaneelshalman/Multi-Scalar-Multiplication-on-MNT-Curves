@@ -1,4 +1,5 @@
 use crate::operations::{add_points, scalar_multiply};
+use ark_ec::Group;
 use ark_ff::Zero;
 use ark_mnt4_298::{G1Projective, Fr};
 use std::collections::HashMap;
@@ -81,8 +82,15 @@ pub fn parallel_combine_partitioned_msm(partitions: &[ParallelMsmPartition], poi
     // Collect results from each thread and combine
     let mut final_result = G1Projective::zero();
     for handle in handles {
-        let (partition_result, bit_index) = handle.join().unwrap();
-        final_result = add_points(final_result, scalar_multiply(partition_result, Fr::from(1 << bit_index)));
+        let (mut partition_result, bit_index) = handle.join().unwrap();
+        
+        // Iteratively double the partition result bit_index times
+        for _ in 0..bit_index {
+            partition_result = partition_result.double();
+        }
+
+        // Add the iteratively doubled result to the final result
+        final_result = add_points(final_result, partition_result);
     }
 
     final_result

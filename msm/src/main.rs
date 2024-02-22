@@ -34,9 +34,9 @@ fn main() {
         (0..num_scalars).map(|_| rng.gen_range(0..65536)).collect()
     }
 
-    let points = generate_points(100000);
-    let scalars = generate_scalars(100000);
-    let window_size = 2;
+    let points = generate_points(1000);
+    let scalars = generate_scalars(1000);
+    let window_size = 3;
 
     let start = Instant::now();
     let result_naive = naive_msm(&points, &scalars);
