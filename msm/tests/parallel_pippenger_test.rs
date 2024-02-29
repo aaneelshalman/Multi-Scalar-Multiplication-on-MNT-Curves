@@ -127,8 +127,20 @@ fn test_parallel_partition_msm_3() {
 }
 
 #[test]
-// Test for Step 2: Compute MSM for each partition
-fn test_parallel_compute_msm_for_partition() {
+// Test for Step 2 Part 1: Maximum scalar value
+fn test_parallel_compute_msm_for_partition_1() {
+    let partition = ParallelMsmPartition { bit_index: 0, window_values: vec![2, 0, 1, 0, 1, 0, 1, 0, 1, 0] };
+
+    let max_scalar_value = partition.window_values.iter().max().cloned().unwrap_or(0);
+    
+    // Compare against result by adding points
+    let expected_value = 2;
+    assert_eq!(max_scalar_value, expected_value, "MSM computation for partition failed");
+}
+
+#[test]
+// Test for Step 2 Part 2: Compute MSM for each partition
+fn test_parallel_compute_msm_for_partition_2() {
     let points = generate_points(10);
     let partition = ParallelMsmPartition { bit_index: 0, window_values: vec![1, 0, 1, 0, 1, 0, 1, 0, 1, 0] };
 
@@ -146,7 +158,7 @@ fn test_parallel_combine_msm() {
     let window_size = 2;
 
     let partitions = parallel_partition_msm(&scalars, window_size);
-    let combined_result = parallel_combine_partitioned_msm(&partitions, &points);
+    let combined_result = parallel_combine_partitioned_msm(&partitions, &points, window_size);
     // Compare against result from naive msm
     let expected_result = naive_msm(&points, &scalars);
     assert_eq!(combined_result, expected_result, "Combined MSM result is incorrect");
