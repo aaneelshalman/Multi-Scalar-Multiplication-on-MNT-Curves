@@ -11,7 +11,7 @@ pub fn pippenger(points: &[G1Projective], scalars: &[u32], window_size: usize) -
     assert_eq!(points.len(), scalars.len(), "Points and scalars must have the same length");
     
     let partitions = partition_msm(scalars, window_size);
-    combine_partitioned_msm(&partitions, points)
+    combine_partitioned_msm(&partitions, points, window_size)
 }
 
 pub struct MsmPartition {
@@ -95,18 +95,18 @@ pub fn compute_msm_for_partition(partition: &MsmPartition, points: &[G1Projectiv
 
 
 // Step 3: Compute the final MSM result by combining all partitions
-pub fn combine_partitioned_msm(partitions: &[MsmPartition], points: &[G1Projective]) -> G1Projective {
+pub fn combine_partitioned_msm(partitions: &[MsmPartition], points: &[G1Projective], window_size: usize) -> G1Projective {
     // Variable to store the final MSM result
     let mut final_result = G1Projective::zero();
 
     // Iterating over each partition
-    for partition in partitions {
+    for partition in partitions.iter().rev() {
         // Computing MSM for the current partition
-        let mut partition_msm = compute_msm_for_partition(partition, points);
+        let partition_msm = compute_msm_for_partition(partition, points);
 
         // Iteratively double the partition MSM for bit_index times
-        for _ in 0..partition.bit_index {
-            partition_msm = partition_msm.double();
+        for _ in 0..window_size {
+            final_result = final_result.double();
         }
 
         // Adding the partition MSM to the final result
