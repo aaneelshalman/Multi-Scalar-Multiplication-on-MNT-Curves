@@ -207,7 +207,7 @@ fn test_parallel_naf_combine_msm() {
 
     let partitions = parallel_naf_partition_msm(&scalars, window_size);
     let decomposed_partitions = parallel_naf_decompose_partitions(&partitions, window_size);
-    let combined_result = parallel_naf_combine_partitioned_msm(&decomposed_partitions, &points);
+    let combined_result = parallel_naf_combine_partitioned_msm(&decomposed_partitions, &points, window_size);
     // Compare against result from naive msm
     let expected_result = naive_msm(&points, &scalars);
     assert_eq!(combined_result, expected_result, "Combined MSM result is incorrect");
