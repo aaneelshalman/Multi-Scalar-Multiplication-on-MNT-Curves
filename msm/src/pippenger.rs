@@ -1,7 +1,7 @@
-use crate::operations::{add_points, scalar_multiply};
+use crate::operations::add_points;
 use ark_ec::Group;
 use ark_ff::Zero;
-use ark_mnt4_298::{G1Projective, Fr};
+use ark_mnt4_298::G1Projective;
 use std::collections::HashMap;
 
 // Main pippenger function
@@ -61,28 +61,38 @@ pub fn compute_msm_for_partition(partition: &MsmPartition, points: &[G1Projectiv
     // Iterating over each window value and its index
     for (index, &value) in partition.window_values.iter().enumerate() {
         if value != 0 {
-        // Grouping indexes with the same scalar value
-        buckets.entry(value).or_insert_with(Vec::new).push(index);
+            // Grouping indexes with the same scalar value
+            buckets.entry(value).or_insert_with(Vec::new).push(index);
         }
     }
 
-    // Variable to store the computed MSM for this partition
+    // Variables to store the computed MSM for this partition
     let mut msm_result = G1Projective::zero();
+    let mut temp = G1Projective::zero();
 
-    // Iterating over each bucket
-    for (&value, indexes) in &buckets {
-        // Summing up the points corresponding to the indexes in the bucket
-        let sum_of_points: G1Projective = indexes.iter()
-            .map(|&i| points[i]) // Mapping index to point
-            .fold(G1Projective::zero(), |acc, p| add_points(acc, p)); // Summing points
-        
-        // Adding the summed points to the MSM result after multiplying by the scalar value
-        msm_result = add_points(msm_result, scalar_multiply(sum_of_points, Fr::from(value)));
+    // Get the maximum scalar value (which is the number of buckets minus 1)
+    let max_scalar_value = partition.window_values.iter().max().cloned().unwrap_or(0);
+
+    // Iterating over scalar values in decreasing order
+    for scalar_value in (1..=max_scalar_value).rev() {
+        if let Some(indexes) = buckets.get(&scalar_value) {
+            // Summing up the points corresponding to the indexes in the bucket
+            let sum_of_points: G1Projective = indexes.iter()
+                .map(|&i| points[i])
+                .fold(G1Projective::zero(), |acc, p| add_points(acc, p));
+
+            // Add to temp regardless of whether sum_of_points is zero
+            temp = add_points(temp, sum_of_points);
+        }
+
+        // Add temp to msm_result
+        msm_result = add_points(msm_result, temp);
     }
 
     // Returning the MSM result for this partition
     msm_result
 }
+
 
 // Step 3: Compute the final MSM result by combining all partitions
 pub fn combine_partitioned_msm(partitions: &[MsmPartition], points: &[G1Projective]) -> G1Projective {
