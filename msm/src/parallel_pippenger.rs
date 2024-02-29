@@ -1,7 +1,7 @@
-use crate::operations::{add_points, scalar_multiply};
+use crate::operations::add_points;
 use ark_ec::Group;
 use ark_ff::Zero;
-use ark_mnt4_298::{G1Projective, Fr};
+use ark_mnt4_298::G1Projective;
 use std::collections::HashMap;
 use std::thread;
 
@@ -50,12 +50,27 @@ pub fn parallel_compute_msm_for_partition(partition: &ParallelMsmPartition, poin
         }
     }
 
+    // Variables to store the computed MSM for this partition
     let mut msm_result = G1Projective::zero();
-    for (&value, indexes) in &buckets {
-        let sum_of_points: G1Projective = indexes.iter()
-            .map(|&i| points[i])
-            .fold(G1Projective::zero(), |acc, p| add_points(acc, p));
-        msm_result = add_points(msm_result, scalar_multiply(sum_of_points, Fr::from(value)));
+    let mut temp = G1Projective::zero();
+
+    // Get the maximum scalar value (which is the number of buckets minus 1)
+    let max_scalar_value = partition.window_values.iter().max().cloned().unwrap_or(0);
+
+    // Iterating over scalar values in decreasing order
+    for scalar_value in (1..=max_scalar_value).rev() {
+        if let Some(indexes) = buckets.get(&scalar_value) {
+            // Summing up the points corresponding to the indexes in the bucket
+            let sum_of_points: G1Projective = indexes.iter()
+                .map(|&i| points[i])
+                .fold(G1Projective::zero(), |acc, p| add_points(acc, p));
+
+            // Add to temp regardless of whether sum_of_points is zero
+            temp = add_points(temp, sum_of_points);
+        }
+
+        // Add temp to msm_result
+        msm_result = add_points(msm_result, temp);
     }
 
     msm_result
