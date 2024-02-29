@@ -10,7 +10,7 @@ pub fn parallel_pippenger(points: &[G1Projective], scalars: &[u32], window_size:
     assert_eq!(points.len(), scalars.len(), "Points and scalars must have the same length");
     
     let partitions = parallel_partition_msm(scalars, window_size);
-    parallel_combine_partitioned_msm(&partitions, points)
+    parallel_combine_partitioned_msm(&partitions, points, window_size)
 }
 
 pub struct ParallelMsmPartition {
@@ -77,18 +77,17 @@ pub fn parallel_compute_msm_for_partition(partition: &ParallelMsmPartition, poin
 }
 
 
-pub fn parallel_combine_partitioned_msm(partitions: &[ParallelMsmPartition], points: &[G1Projective]) -> G1Projective {
+pub fn parallel_combine_partitioned_msm(partitions: &[ParallelMsmPartition], points: &[G1Projective], window_size: usize) -> G1Projective {
     let mut handles = Vec::new();
 
     // Spawn a thread for each partition
-    for partition in partitions {
+    for partition in partitions.iter().rev() {
         let partition_clone = partition.clone();
         let points_clone = points.to_vec();
-        let bit_index = partition.bit_index;
 
         let handle = thread::spawn(move || {
             let msm_result = parallel_compute_msm_for_partition(&partition_clone, &points_clone);
-            (msm_result, bit_index)
+            msm_result
         });
 
         handles.push(handle);
@@ -97,11 +96,11 @@ pub fn parallel_combine_partitioned_msm(partitions: &[ParallelMsmPartition], poi
     // Collect results from each thread and combine
     let mut final_result = G1Projective::zero();
     for handle in handles {
-        let (mut partition_result, bit_index) = handle.join().unwrap();
+        let partition_result = handle.join().unwrap();
         
         // Iteratively double the partition result bit_index times
-        for _ in 0..bit_index {
-            partition_result = partition_result.double();
+        for _ in 0..window_size {
+            final_result = final_result.double();
         }
 
         // Add the iteratively doubled result to the final result
