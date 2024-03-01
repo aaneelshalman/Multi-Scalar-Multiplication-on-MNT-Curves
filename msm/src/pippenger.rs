@@ -54,7 +54,7 @@ pub fn partition_msm(scalars: &[u32], window_size: usize) -> Vec<MsmPartition> {
 }
 
 // Step 2: Compute MSM for each partition
-pub fn compute_msm_for_partition(partition: &MsmPartition, points: &[G1Projective]) -> G1Projective {
+pub fn compute_msm_for_partition(partition: &MsmPartition, points: &[G1Projective], window_size: usize) -> G1Projective {
     // HashMap to bucket indexes of similar scalar values
     let mut buckets: HashMap<u32, Vec<usize>> = HashMap::new();
 
@@ -71,7 +71,7 @@ pub fn compute_msm_for_partition(partition: &MsmPartition, points: &[G1Projectiv
     let mut temp = G1Projective::zero();
 
     // Get the maximum scalar value (which is the number of buckets minus 1)
-    let max_scalar_value = partition.window_values.iter().max().cloned().unwrap_or(0);
+    let max_scalar_value = (1 << window_size) - 1;
 
     // Iterating over scalar values in decreasing order
     for scalar_value in (1..=max_scalar_value).rev() {
@@ -99,12 +99,12 @@ pub fn combine_partitioned_msm(partitions: &[MsmPartition], points: &[G1Projecti
     // Variable to store the final MSM result
     let mut final_result = G1Projective::zero();
 
-    // Iterating over each partition
+    // Iterating over each partition in reverse to ensure doubling mimics scaling accurately
     for partition in partitions.iter().rev() {
         // Computing MSM for the current partition
-        let partition_msm = compute_msm_for_partition(partition, points);
+        let partition_msm = compute_msm_for_partition(partition, points, window_size);
 
-        // Iteratively double the partition MSM for bit_index times
+        // Double the final result window_size times to mimic scaling by 2^bit_index
         for _ in 0..window_size {
             final_result = final_result.double();
         }
