@@ -1,7 +1,7 @@
-use crate::operations::{add_points, scalar_multiply};
+use crate::operations::add_points;
 use ark_ec::Group;
 use ark_ff::Zero;
-use ark_mnt4_298::{G1Projective, Fr};
+use ark_mnt4_298::G1Projective;
 use std::collections::HashMap;
 use std::ops::Neg;
 
@@ -11,7 +11,7 @@ pub fn naf_pippenger(points: &[G1Projective], scalars: &[u32], window_size: usiz
     
     let partitions = naf_partition_msm(scalars, window_size);
     let decomposed_partitions = naf_decompose_partitions(&partitions, window_size);
-    naf_combine_partitioned_msm(&decomposed_partitions, points)
+    naf_combine_partitioned_msm(&decomposed_partitions, points, window_size)
 }
 
 pub struct NafMsmPartition {
@@ -96,9 +96,9 @@ pub fn naf_decompose_partitions(partitions: &[NafMsmPartition], window_size: usi
     decomposed_partitions
 }
 
-pub fn naf_compute_msm_for_partition(partition: &NafMsmPartitionDecomposed, points: &[G1Projective]) -> G1Projective {
-    let mut buckets: HashMap<u32, Vec<(usize, i64)>> = HashMap::new(); // Use magnitude for keys and keep sign with index for values
-    
+pub fn naf_compute_msm_for_partition(partition: &NafMsmPartitionDecomposed, points: &[G1Projective], window_size: usize) -> G1Projective {
+    let mut buckets: HashMap<u32, Vec<(usize, i64)>> = HashMap::new(); // Use absolute value for keys and keep sign with index for values
+
     // Assign points to buckets based on the absolute value while keeping track of the original value's sign
     for (index, &value) in partition.window_values.iter().enumerate() {
         if value != 0 {
@@ -107,39 +107,51 @@ pub fn naf_compute_msm_for_partition(partition: &NafMsmPartitionDecomposed, poin
         }
     }
 
+    // Calculate the maximum scalar value based on the absolute values
+    let max_scalar_value = (1 << window_size) - 1;
+
     let mut msm_result = G1Projective::zero();
-    for (&abs_value, index_sign_pairs) in &buckets {
-        let sum_of_points: G1Projective = index_sign_pairs.iter()
-            .map(|&(i, sign)| {
-                if i >= points.len() {
-                    return G1Projective::zero(); // Return a zero point to avoid panic
-                }
+    let mut temp = G1Projective::zero();
 
-                let mut point = points[i];
-                if sign < 0 {
-                    point = point.neg(); // Negate the point if the original value was negative
-                }
-                point
-            })
-            .fold(G1Projective::zero(), |acc, p| add_points(acc, p));
+    // Iterating over scalar values in decreasing order
+    for scalar_value in (1..=max_scalar_value).rev() {
+        if let Some(index_sign_pairs) = buckets.get(&scalar_value) {
+            let sum_of_points: G1Projective = index_sign_pairs.iter()
+                .map(|&(i, sign)| {
+                    let mut point = points[i];
+                    if sign < 0 {
+                        point = point.neg(); // Negate the point if the original value was negative
+                    }
+                    point
+                })
+                .fold(G1Projective::zero(), |acc, p| add_points(acc, p));
 
-        msm_result = add_points(msm_result, scalar_multiply(sum_of_points, Fr::from(abs_value as u32)));
+            temp = add_points(temp, sum_of_points);
+        }
+
+        // Add temp to msm_result after each scalar value iteration
+        msm_result = add_points(msm_result, temp);
     }
 
     msm_result
 }
 
 
-pub fn naf_combine_partitioned_msm(partitions: &[NafMsmPartitionDecomposed], points: &[G1Projective]) -> G1Projective {
-    partitions.iter().fold(G1Projective::zero(), |acc, partition| {
-        let mut partition_msm = naf_compute_msm_for_partition(partition, points);
+pub fn naf_combine_partitioned_msm(partitions: &[NafMsmPartitionDecomposed], points: &[G1Projective], window_size: usize) -> G1Projective {
+    
+    let mut final_result = G1Projective::zero();
+   
+    // Iterating over each partition in reverse to ensure doubling mimics scaling accurately
+    for partition in partitions.iter().rev() {
+        let partition_msm = naf_compute_msm_for_partition(partition, points, window_size);
 
-        // Iteratively double the partition result bit_index times
-        for _ in 0..partition.bit_index {
-            partition_msm = partition_msm.double();
+        // Double the final result window_size times to mimic scaling by 2^bit_index
+        for _ in 0..window_size {
+            final_result = final_result.double();
         }
 
         // Add the iteratively doubled result to the accumulated result
-        add_points(acc, partition_msm)
-    })
+        final_result = add_points(final_result, partition_msm);
+    }
+    final_result
 }
