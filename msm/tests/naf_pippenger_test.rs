@@ -158,7 +158,7 @@ fn test_parallel_naf_compute_msm_for_partition() {
 
     // Iterate over each decomposed partition and compute its MSM contribution
     for decomposed_partition in decomposed_partitions.iter() {
-        let msm_result = naf_compute_msm_for_partition(decomposed_partition, &points);
+        let msm_result = naf_compute_msm_for_partition(decomposed_partition, &points, window_size);
         // Accumulate the MSM result from each partition
         total_msm_result = add_points(total_msm_result, msm_result);
     }
@@ -178,10 +178,11 @@ fn test_naf_compute_msm_for_partition_2() {
     };
 
     // Generate dummy points (the actual points are not relevant for bucket count verification)
-    let points = generate_points(10); // Assuming this function generates 10 dummy points
+    let points = generate_points(10);
+    let window_size = 2;
 
     // Utilize the parallel_naf_compute_msm_for_partition function to process the decomposed partition
-    let _ = naf_compute_msm_for_partition(&decomposed_partition, &points);
+    let _ = naf_compute_msm_for_partition(&decomposed_partition, &points, window_size);
 
     // Extract the bucketing logic for verification purposes
     let mut buckets: HashMap<u32, Vec<usize>> = HashMap::new();

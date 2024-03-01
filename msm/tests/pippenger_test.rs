@@ -143,8 +143,9 @@ fn test_compute_msm_for_partition_1() {
 fn test_compute_msm_for_partition_2() {
     let points = generate_points(10);
     let partition = MsmPartition { bit_index: 0, window_values: vec![1, 0, 1, 0, 1, 0, 1, 0, 1, 0] };
+    let window_size = 2;
 
-    let msm_result = compute_msm_for_partition(&partition, &points);
+    let msm_result = compute_msm_for_partition(&partition, &points, window_size);
     // Compare against result by adding points
     let expected_result = points.iter().step_by(2).fold(G1Projective::zero(), |acc, &p| add_points(acc, p));
     assert_eq!(msm_result, expected_result, "MSM computation for partition failed");
