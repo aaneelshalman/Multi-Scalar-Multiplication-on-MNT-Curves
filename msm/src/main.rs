@@ -10,9 +10,12 @@ mod parallel_pippenger;
 mod naive;
 mod parallel_naf_pippenger;
 mod naf_pippenger;
+mod subsum_pippenger;
 
 use ark_mnt4_298::G1Projective;
 use ark_std::{UniformRand, test_rng};
+// use ark_ff::Zero;
+// use std::collections::HashMap;
 use rand::{Rng, thread_rng};
 use std::time::Instant;
 use parallel_pippenger::parallel_pippenger;
@@ -20,6 +23,7 @@ use pippenger::pippenger;
 use naive::naive_msm;
 use naf_pippenger::naf_pippenger;
 use parallel_naf_pippenger::parallel_naf_pippenger;
+// use subsum_pippenger::subsum_pippenger;
 // use operations::{add_points, scalar_multiply};
 
 fn main() {
@@ -31,12 +35,12 @@ fn main() {
     
     fn generate_scalars(num_scalars: usize) -> Vec<u32> {
         let mut rng = thread_rng();
-        (0..num_scalars).map(|_| rng.gen_range(0..65536)).collect()
+        (0..num_scalars).map(|_| rng.gen_range(0..4294967295)).collect() // 32-bit integers
     }
 
     let points = generate_points(1000);
     let scalars = generate_scalars(1000);
-    let window_size = 3;
+    let window_size = 16;
 
     let start = Instant::now();
     let result_naive = naive_msm(&points, &scalars);
@@ -68,4 +72,5 @@ fn main() {
     println!("Parallel: {:?}", duration_parallel);
     println!("NAF: {:?}", duration_naf);
     println!("Parallel NAF: {:?}", duration_parallel_naf);
+
 }
