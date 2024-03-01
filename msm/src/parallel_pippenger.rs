@@ -42,7 +42,7 @@ pub fn parallel_partition_msm(scalars: &[u32], window_size: usize) -> Vec<Parall
     partitions
 }
 
-pub fn parallel_compute_msm_for_partition(partition: &ParallelMsmPartition, points: &[G1Projective]) -> G1Projective {
+pub fn parallel_compute_msm_for_partition(partition: &ParallelMsmPartition, points: &[G1Projective], window_size: usize) -> G1Projective {
     let mut buckets: HashMap<u32, Vec<usize>> = HashMap::new();
     for (index, &value) in partition.window_values.iter().enumerate() {
         if value != 0 {
@@ -55,7 +55,7 @@ pub fn parallel_compute_msm_for_partition(partition: &ParallelMsmPartition, poin
     let mut temp = G1Projective::zero();
 
     // Get the maximum scalar value (which is the number of buckets minus 1)
-    let max_scalar_value = partition.window_values.iter().max().cloned().unwrap_or(0);
+    let max_scalar_value = (1 << window_size) - 1;
 
     // Iterating over scalar values in decreasing order
     for scalar_value in (1..=max_scalar_value).rev() {
@@ -80,13 +80,13 @@ pub fn parallel_compute_msm_for_partition(partition: &ParallelMsmPartition, poin
 pub fn parallel_combine_partitioned_msm(partitions: &[ParallelMsmPartition], points: &[G1Projective], window_size: usize) -> G1Projective {
     let mut handles = Vec::new();
 
-    // Spawn a thread for each partition
+    // Spawn a thread for each partition, iterating through them in reverse to ensure doubling mimics scaling accurately
     for partition in partitions.iter().rev() {
         let partition_clone = partition.clone();
         let points_clone = points.to_vec();
 
         let handle = thread::spawn(move || {
-            let msm_result = parallel_compute_msm_for_partition(&partition_clone, &points_clone);
+            let msm_result = parallel_compute_msm_for_partition(&partition_clone, &points_clone, window_size);
             msm_result
         });
 
@@ -98,12 +98,12 @@ pub fn parallel_combine_partitioned_msm(partitions: &[ParallelMsmPartition], poi
     for handle in handles {
         let partition_result = handle.join().unwrap();
         
-        // Iteratively double the partition result bit_index times
+        // Double the final result window_size times to mimic scaling by 2^bit_index
         for _ in 0..window_size {
             final_result = final_result.double();
         }
 
-        // Add the iteratively doubled result to the final result
+        // Adding the partition MSM to the final result
         final_result = add_points(final_result, partition_result);
     }
 
