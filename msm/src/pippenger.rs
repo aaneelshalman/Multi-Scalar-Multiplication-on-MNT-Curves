@@ -3,6 +3,7 @@ use ark_ec::Group;
 use ark_ff::Zero;
 use ark_mnt4_298::G1Projective;
 use std::collections::HashMap;
+use std::time::Instant;
 
 // Main pippenger function
 pub fn pippenger(points: &[G1Projective], scalars: &[u32], window_size: usize) -> G1Projective {
@@ -53,45 +54,37 @@ pub fn partition_msm(scalars: &[u32], window_size: usize) -> Vec<MsmPartition> {
     partitions
 }
 
-// Step 2: Compute MSM for each partition
 pub fn compute_msm_for_partition(partition: &MsmPartition, points: &[G1Projective], window_size: usize) -> G1Projective {
-    // HashMap to bucket indexes of similar scalar values
+    let start_bucketing = Instant::now();
     let mut buckets: HashMap<u32, Vec<usize>> = HashMap::new();
-
-    // Iterating over each window value and its index
     for (index, &value) in partition.window_values.iter().enumerate() {
         if value != 0 {
-            // Grouping indexes with the same scalar value
             buckets.entry(value).or_insert_with(Vec::new).push(index);
         }
     }
+    let duration_bucketing = start_bucketing.elapsed();
+    println!("Bucketing took: {:?}", duration_bucketing);
 
-    // Variables to store the computed MSM for this partition
+    let max_scalar_value = (1 << window_size) - 1;
     let mut msm_result = G1Projective::zero();
     let mut temp = G1Projective::zero();
 
-    // Get the maximum scalar value (which is the number of buckets minus 1)
-    let max_scalar_value = (1 << window_size) - 1;
-
-    // Iterating over scalar values in decreasing order
+    let start_iterating = Instant::now();
     for scalar_value in (1..=max_scalar_value).rev() {
         if let Some(indexes) = buckets.get(&scalar_value) {
-            // Summing up the points corresponding to the indexes in the bucket
             let sum_of_points: G1Projective = indexes.iter()
                 .map(|&i| points[i])
                 .fold(G1Projective::zero(), |acc, p| add_points(acc, p));
-
-            // Add to temp regardless of whether sum_of_points is zero
             temp = add_points(temp, sum_of_points);
         }
-
-        // Add temp to msm_result
         msm_result = add_points(msm_result, temp);
     }
+    let duration_iterating = start_iterating.elapsed();
+    println!("Iterating over scalar values took: {:?}", duration_iterating);
 
-    // Returning the MSM result for this partition
     msm_result
 }
+
 
 
 // Step 3: Compute the final MSM result by combining all partitions
