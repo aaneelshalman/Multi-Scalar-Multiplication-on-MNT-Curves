@@ -50,8 +50,8 @@ pub fn naf_partition_msm(scalars: &[u32], window_size: usize) -> Vec<NafMsmParti
 }
 
 pub fn naf_decompose_partitions(partitions: &[NafMsmPartition], window_size: usize) -> Vec<NafMsmPartitionDecomposed> {
-    let base = 2u32.pow(window_size as u32); // 2^(window_size)
-    let threshold = base / 2; // 2^(window_size-1)
+    let base = 2u32.pow(window_size as u32); // 2^(window_size) -> can't use this!
+    let threshold = base / 2; // 2^(window_size-1) -> can't use this!
 
     // Initialize decomposed partitions with the same structure but empty window values
     let mut decomposed_partitions: Vec<NafMsmPartitionDecomposed> = partitions.iter()
@@ -80,9 +80,7 @@ pub fn naf_decompose_partitions(partitions: &[NafMsmPartition], window_size: usi
             if adjusted_value >= threshold as i64 {
                 decomposed_partitions[j].window_values[i] = adjusted_value - base as i64;
                 // Ensure carry is forwarded to the next partition's same position
-                if j < partitions.len() - 1 {
-                    carry = 1;
-                }
+                carry = 1;
             } else {
                 decomposed_partitions[j].window_values[i] = adjusted_value;
             }
