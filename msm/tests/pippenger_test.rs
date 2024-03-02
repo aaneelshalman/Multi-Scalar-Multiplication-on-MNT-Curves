@@ -127,20 +127,8 @@ fn test_partition_msm_3() {
 }
 
 #[test]
-// Test for Step 2 Part 1: Maximum scalar value
-fn test_compute_msm_for_partition_1() {
-    let partition = MsmPartition { bit_index: 0, window_values: vec![2, 0, 1, 0, 1, 0, 1, 0, 1, 0] };
-
-    let max_scalar_value = partition.window_values.iter().max().cloned().unwrap_or(0);
-    
-    // Compare against result by adding points
-    let expected_value = 2;
-    assert_eq!(max_scalar_value, expected_value, "MSM computation for partition failed");
-}
-
-#[test]
-// Test for Step 2 Part 2: Compute MSM for each partition
-fn test_compute_msm_for_partition_2() {
+// Test for Step 2: Compute MSM for each partition
+fn test_compute_msm_for_partition() {
     let points = generate_points(10);
     let partition = MsmPartition { bit_index: 0, window_values: vec![1, 0, 1, 0, 1, 0, 1, 0, 1, 0] };
     let window_size = 2;
