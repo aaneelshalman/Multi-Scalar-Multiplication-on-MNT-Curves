@@ -90,9 +90,7 @@ pub fn parallel_naf_decompose_partitions(partitions: &[ParallelNafMsmPartition],
             if adjusted_value >= threshold as i64 {
                 decomposed_partitions[j].window_values[i] = adjusted_value - base as i64;
                 // Forward carry to the next partition's same position
-                if j < partitions.len() - 1 {
-                    carry = 1;
-                }
+                carry = 1;
             } else {
                 decomposed_partitions[j].window_values[i] = adjusted_value;
             }
