@@ -107,7 +107,7 @@ pub fn sid_compute_msm_for_partition(partition: &SidMsmPartitionDecomposed, poin
     }
 
     // Calculate the maximum scalar value based on the absolute values
-    let max_scalar_value = (1 << window_size) - 1;
+    let max_scalar_value = 1 << (window_size - 1);
 
     let mut msm_result = G1Projective::zero();
     let mut temp = G1Projective::zero();
