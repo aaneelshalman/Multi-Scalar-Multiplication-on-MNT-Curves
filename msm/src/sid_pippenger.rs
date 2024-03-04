@@ -4,6 +4,7 @@ use ark_ff::Zero;
 use ark_mnt4_298::G1Projective;
 use std::collections::HashMap;
 use std::ops::Neg;
+use std::time::Instant;
 
 // Main function for Pippenger with Signed Integer Decomposition Decomposition
 pub fn sid_pippenger(points: &[G1Projective], scalars: &[u32], window_size: usize) -> G1Projective {
@@ -51,6 +52,7 @@ pub fn sid_partition_msm(scalars: &[u32], window_size: usize) -> Vec<SidMsmParti
 
 // Signed Integer Decomposition Step
 pub fn sid_decompose_partitions(partitions: &[SidMsmPartition], window_size: usize) -> Vec<SidMsmPartitionDecomposed> {
+    let start_decomposition = Instant::now();
     let base = 2u32.pow(window_size as u32); // 2^(window_size) -> can't use this!
     let threshold = base / 2; // 2^(window_size-1) -> can't use this!
 
@@ -91,6 +93,8 @@ pub fn sid_decompose_partitions(partitions: &[SidMsmPartition], window_size: usi
             decomposed_partitions[partitions.len()].window_values[i] += carry;
         }
     }
+    let duration_decomposition = start_decomposition.elapsed();
+    println!("Decomposition took: {:?}", duration_decomposition);
 
     decomposed_partitions
 }
