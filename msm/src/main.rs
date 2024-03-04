@@ -23,7 +23,7 @@ use pippenger::pippenger;
 use naive::naive_msm;
 use naf_pippenger::naf_pippenger;
 use parallel_naf_pippenger::parallel_naf_pippenger;
-// use subsum_pippenger::subsum_pippenger;
+use subsum_pippenger::subsum_pippenger;
 // use operations::{add_points, scalar_multiply};
 
 fn main() {
@@ -40,7 +40,7 @@ fn main() {
 
     let points = generate_points(1000);
     let scalars = generate_scalars(1000);
-    let window_size = 16;
+    let window_size = 2;
 
     let start = Instant::now();
     let result_naive = naive_msm(&points, &scalars);
@@ -62,15 +62,21 @@ fn main() {
     let result_parallel_naf = parallel_naf_pippenger(&points, &scalars, window_size);
     let duration_parallel_naf = start.elapsed();
 
+    let start = Instant::now();
+    let result_subsum = subsum_pippenger(&points, &scalars, window_size);
+    let duration_subsum = start.elapsed();
+
     assert_eq!(result_naive, result_pippenger, "Results of pippenger and naive MSM should match");
     assert_eq!(result_naive, result_parallel, "Results of pippenger with parallelism and naive MSM should match");
     assert_eq!(result_naive, result_naf, "Results of pippenger with 2-NAF Decomposition should match with naive MSM");
+    assert_eq!(result_naive, result_subsum, "Results of pippenger with new subsum accumulation should match with naive MSM");
     assert_eq!(result_naive, result_parallel_naf, "Results of pippenger with 2-NAF Decomposition and parallelism should match with naive MSM");
 
     println!("Naive: {:?}", duration_naive);
     println!("Pippenger: {:?}", duration_pippenger);
     println!("Parallel: {:?}", duration_parallel);
     println!("NAF: {:?}", duration_naf);
+    println!("Subsum: {:?}", duration_subsum);
     println!("Parallel NAF: {:?}", duration_parallel_naf);
 
 }
