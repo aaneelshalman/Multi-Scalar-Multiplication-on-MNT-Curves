@@ -1,4 +1,4 @@
-use msm::naf_pippenger::{NafMsmPartitionDecomposed, naf_decompose_partitions, naf_pippenger, NafMsmPartition, naf_partition_msm, naf_compute_msm_for_partition, naf_combine_partitioned_msm};
+use msm::sid_pippenger::{SidMsmPartitionDecomposed, Sid_decompose_partitions, Sid_pippenger, SidMsmPartition, Sid_partition_msm, Sid_compute_msm_for_partition, Sid_combine_partitioned_msm};
 use msm::naive::naive_msm;
 use msm::operations::add_points;
 use ark_mnt4_298::G1Projective;
@@ -8,52 +8,52 @@ use rand::{Rng, thread_rng};
 use std::collections::HashMap;
 
 #[test]
-fn test_naf_pippenger_with_zero_scalars() {
+fn test_Sid_pippenger_with_zero_scalars() {
     let mut rng = test_rng();
     let points = vec![G1Projective::rand(&mut rng), G1Projective::rand(&mut rng)];
     let scalars = vec![0, 0];
     let window_size = 2;
-    assert_eq!(naf_pippenger(&points, &scalars, window_size), G1Projective::zero(), "Pippenger with zero scalars should return the zero point");
+    assert_eq!(Sid_pippenger(&points, &scalars, window_size), G1Projective::zero(), "Pippenger with zero scalars should return the zero point");
 }
 
 #[test]
-fn test_naf_pippenger_with_all_ones_scalars() {
+fn test_Sid_pippenger_with_all_ones_scalars() {
     let mut rng = test_rng();
     let points = vec![G1Projective::rand(&mut rng), G1Projective::rand(&mut rng)];
     let scalars = vec![1, 1];
     let window_size = 2;
     // Compare against result from naive msm
     let expected_result = naive_msm(&points, &scalars);
-    assert_eq!(naf_pippenger(&points, &scalars, window_size), expected_result, "Pippenger with all ones scalars failed");
+    assert_eq!(Sid_pippenger(&points, &scalars, window_size), expected_result, "Pippenger with all ones scalars failed");
 }
 
 #[test]
-fn test_naf_pippenger_with_large_scalars() {
+fn test_Sid_pippenger_with_large_scalars() {
     let mut rng = test_rng();
     let points = vec![G1Projective::rand(&mut rng)];
     let large_scalar = 1u32 << 30;
     let window_size = 2;
     // Compare against result from naive msm
     let expected_result = naive_msm(&points, &[large_scalar]);
-    assert_eq!(naf_pippenger(&points, &[large_scalar], window_size), expected_result, "Pippenger with large scalar failed");
+    assert_eq!(Sid_pippenger(&points, &[large_scalar], window_size), expected_result, "Pippenger with large scalar failed");
 }
 
 #[test]
-fn test_naf_pippenger_with_empty_lists() {
+fn test_Sid_pippenger_with_empty_lists() {
     let points: Vec<G1Projective> = Vec::new();
     let scalars: Vec<u32> = Vec::new();
     let window_size = 2;
-    assert_eq!(naf_pippenger(&points, &scalars, window_size), G1Projective::zero(), "Pippenger with empty lists should return the zero point");
+    assert_eq!(Sid_pippenger(&points, &scalars, window_size), G1Projective::zero(), "Pippenger with empty lists should return the zero point");
 }
 
 #[test]
 #[should_panic(expected = "Points and scalars must have the same length")]
-fn test_naf_pippenger_with_different_lengths() {
+fn test_Sid_pippenger_with_different_lengths() {
     let mut rng = test_rng();
     let points = vec![G1Projective::rand(&mut rng)];
     let scalars = vec![1, 2];
     let window_size = 2;
-    let panic_result = naf_pippenger(&points, &scalars, window_size); // This should panic
+    let panic_result = Sid_pippenger(&points, &scalars, window_size); // This should panic
     assert_eq!(panic_result, G1Projective::zero())
 }
 
@@ -71,20 +71,20 @@ fn generate_scalars(num_scalars: usize) -> Vec<u32> {
 
 #[test]
 // Test for Step 1 Part 1: Number of partitions should be 32/c. c == window_size
-fn test_naf_partition_msm() {
+fn test_Sid_partition_msm() {
     let scalars = vec![182, 255, 129];
     let window_size = 2;
-    let partitions = naf_partition_msm(&scalars, window_size);
+    let partitions = Sid_partition_msm(&scalars, window_size);
 
     assert_eq!(partitions.len(), 32/window_size, "Incorrect number of partitions");
 }
 
 #[test]
 // Test for Step 1 Part 1: Testing behaviour of partition_msm when partitions does not divide window_size
-fn test_naf_partition_msm_1() {
+fn test_Sid_partition_msm_1() {
     let scalars = vec![182, 255, 129];
     let window_size = 3;
-    let partitions = naf_partition_msm(&scalars, window_size);
+    let partitions = Sid_partition_msm(&scalars, window_size);
 
     // The number of partitions should be (32/window_size).ceil() i.e. 11 when scalars are u32 bit integeres and window_size = 3
     assert_eq!(partitions.len(), 11, "Incorrect number of partitions");
@@ -92,10 +92,10 @@ fn test_naf_partition_msm_1() {
 
 #[test]
 // Test for Step 1 Part 2: Bit_index should be (i * window_size)
-fn test_naf_partition_msm_2() {
+fn test_Sid_partition_msm_2() {
     let scalars = vec![182, 255, 129]; 
     let window_size = 2;
-    let partitions = naf_partition_msm(&scalars, window_size);
+    let partitions = Sid_partition_msm(&scalars, window_size);
 
     for (i, partition) in partitions.iter().enumerate() {
         assert_eq!(partition.bit_index, i * window_size, "Incorrect bit_index");
@@ -104,10 +104,10 @@ fn test_naf_partition_msm_2() {
 
 #[test]
 // Test for Step 1 Part 3: Testing correctness of window_values
-fn test_naf_partition_msm_3() {
+fn test_Sid_partition_msm_3() {
     let scalars = vec![182, 255, 129];
     let window_size = 2;
-    let partitions = naf_partition_msm(&scalars, window_size);
+    let partitions = Sid_partition_msm(&scalars, window_size);
 
     // Manually calculated expected window values for each scalar
     let expected_values: Vec<Vec<u32>> = vec![
@@ -129,13 +129,13 @@ fn test_naf_partition_msm_3() {
 
 // Test for Signed Integer Decomposition Step
 #[test]
-fn test_naf_decompose_partitions() {
+fn test_Sid_decompose_partitions() {
     let window_size = 2; // Example window size
     // Define a partition with window values within the correct range for a window_size of 2
-    let partitions = vec![NafMsmPartition { bit_index: 0, window_values: vec![3, 1, 2, 3, 1] }]; // Adjusted values
+    let partitions = vec![SidMsmPartition { bit_index: 0, window_values: vec![3, 1, 2, 3, 1] }]; // Adjusted values
     
     // Perform decomposition
-    let decomposed_partitions = naf_decompose_partitions(&partitions, window_size);
+    let decomposed_partitions = Sid_decompose_partitions(&partitions, window_size);
     
     let expected_decomposed_values = vec![vec![-1, 1, -2, -1, 1]];
     
@@ -147,18 +147,18 @@ fn test_naf_decompose_partitions() {
 
 #[test]
 // Test for Step 2: Compute MSM for each partition
-fn test_parallel_naf_compute_msm_for_partition() {
+fn test_parallel_Sid_compute_msm_for_partition() {
     let points = generate_points(10);
-    let partitions = NafMsmPartition { bit_index: 0, window_values: vec![1, 0, 1, 0, 1, 0, 1, 0, 1, 0] };
+    let partitions = SidMsmPartition { bit_index: 0, window_values: vec![1, 0, 1, 0, 1, 0, 1, 0, 1, 0] };
     let window_size = 2;
-    let decomposed_partitions = naf_decompose_partitions(&[partitions], window_size);
+    let decomposed_partitions = Sid_decompose_partitions(&[partitions], window_size);
 
     // Initialize an accumulator for MSM results from each partition
     let mut total_msm_result = G1Projective::zero();
 
     // Iterate over each decomposed partition and compute its MSM contribution
     for decomposed_partition in decomposed_partitions.iter() {
-        let msm_result = naf_compute_msm_for_partition(decomposed_partition, &points, window_size);
+        let msm_result = Sid_compute_msm_for_partition(decomposed_partition, &points, window_size);
         // Accumulate the MSM result from each partition
         total_msm_result = add_points(total_msm_result, msm_result);
     }
@@ -170,9 +170,9 @@ fn test_parallel_naf_compute_msm_for_partition() {
 
 // Test for Step 2: Bucket negative values in same bucket as positive values if absolute value is equal
 #[test]
-fn test_naf_compute_msm_for_partition_2() {
+fn test_Sid_compute_msm_for_partition_2() {
     // Define a decomposed partition with a mix of positive, negative, and zero window values
-    let decomposed_partition = NafMsmPartitionDecomposed {
+    let decomposed_partition = SidMsmPartitionDecomposed {
         bit_index: 0,
         window_values: vec![2, -2, 3, -3, 0, 1, -1, 0, 2, -2],
     };
@@ -181,8 +181,8 @@ fn test_naf_compute_msm_for_partition_2() {
     let points = generate_points(10);
     let window_size = 2;
 
-    // Utilize the parallel_naf_compute_msm_for_partition function to process the decomposed partition
-    let _ = naf_compute_msm_for_partition(&decomposed_partition, &points, window_size);
+    // Utilize the parallel_Sid_compute_msm_for_partition function to process the decomposed partition
+    let _ = Sid_compute_msm_for_partition(&decomposed_partition, &points, window_size);
 
     // Extract the bucketing logic for verification purposes
     let mut buckets: HashMap<u32, Vec<usize>> = HashMap::new();
@@ -201,14 +201,14 @@ fn test_naf_compute_msm_for_partition_2() {
 
 #[test]
 // Test for Step 3: Compute the final MSM result by combining all partitions
-fn test_naf_combine_msm() {
+fn test_Sid_combine_msm() {
     let points = generate_points(10);
     let scalars: Vec<u32> = vec![0b01; 10]; // Scalars with only the second least significant bit set
     let window_size = 2;
 
-    let partitions = naf_partition_msm(&scalars, window_size);
-    let decomposed_partitions = naf_decompose_partitions(&partitions, window_size);
-    let combined_result = naf_combine_partitioned_msm(&decomposed_partitions, &points, window_size);
+    let partitions = Sid_partition_msm(&scalars, window_size);
+    let decomposed_partitions = Sid_decompose_partitions(&partitions, window_size);
+    let combined_result = Sid_combine_partitioned_msm(&decomposed_partitions, &points, window_size);
     // Compare against result from naive msm
     let expected_result = naive_msm(&points, &scalars);
     assert_eq!(combined_result, expected_result, "Combined MSM result is incorrect");
@@ -216,12 +216,12 @@ fn test_naf_combine_msm() {
 
 #[test]
 // "Comprehensive test with 10 points"
-fn test_naf_pippenger_algorithm() {
+fn test_Sid_pippenger_algorithm() {
     let points = generate_points(10);
     let scalars: Vec<u32> = generate_scalars(10);
     let window_size = 2;
 
-    let msm_result = naf_pippenger(&points, &scalars, window_size);
+    let msm_result = Sid_pippenger(&points, &scalars, window_size);
     // Compare against result from naive msm
     let expected_result = naive_msm(&points, &scalars);
     assert_eq!(msm_result, expected_result, "Pippenger algorithm did not match expected result");
@@ -229,12 +229,12 @@ fn test_naf_pippenger_algorithm() {
 
 #[test]
 // "Comprehensive test with 100 points"
-fn test_naf_pippenger_algorithm_1() {
+fn test_Sid_pippenger_algorithm_1() {
     let points = generate_points(100);
     let scalars: Vec<u32> = generate_scalars(100);
     let window_size = 2;
 
-    let msm_result = naf_pippenger(&points, &scalars, window_size);
+    let msm_result = Sid_pippenger(&points, &scalars, window_size);
     // Compare against result from naive msm
     let expected_result = naive_msm(&points, &scalars);
     assert_eq!(msm_result, expected_result, "Pippenger algorithm did not match expected result");
@@ -242,12 +242,12 @@ fn test_naf_pippenger_algorithm_1() {
 
 #[test]
 // "Comprehensive test with 1000 points"
-fn test_naf_pippenger_algorithm_2() {
+fn test_Sid_pippenger_algorithm_2() {
     let points = generate_points(1000);
     let scalars: Vec<u32> = generate_scalars(1000);
     let window_size = 2;
 
-    let msm_result = naf_pippenger(&points, &scalars, window_size);
+    let msm_result = Sid_pippenger(&points, &scalars, window_size);
     // Compare against result from naive msm
     let expected_result = naive_msm(&points, &scalars);
     assert_eq!(msm_result, expected_result, "Pippenger algorithm did not match expected result");
