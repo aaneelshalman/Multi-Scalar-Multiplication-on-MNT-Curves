@@ -8,9 +8,10 @@ mod operations;
 mod pippenger;
 mod parallel_pippenger;
 mod naive;
-mod parallel_sid_pippenger;
 mod sid_pippenger;
 mod subsum_pippenger;
+mod parallel_sid_pippenger;
+mod parallel_subsum_pippenger;
 mod sid_subsum_pippenger;
 
 use ark_mnt4_298::G1Projective;
@@ -23,10 +24,10 @@ use parallel_pippenger::parallel_pippenger;
 use pippenger::pippenger;
 use naive::naive_msm;
 use sid_pippenger::sid_pippenger;
-use parallel_sid_pippenger::parallel_sid_pippenger;
 use subsum_pippenger::subsum_pippenger;
+use parallel_sid_pippenger::parallel_sid_pippenger;
+use parallel_subsum_pippenger::parallel_subsum_pippenger;
 use sid_subsum_pippenger::sid_subsum_pippenger;
-// use operations::{add_points, scalar_multiply};
 
 fn main() {
 
@@ -69,15 +70,20 @@ fn main() {
     let duration_parallel_sid = start.elapsed();
 
     let start = Instant::now();
+    let result_parallel_subsum = parallel_subsum_pippenger(&points, &scalars, window_size);
+    let duration_parallel_subsum = start.elapsed();
+
+    let start = Instant::now();
     let result_sid_subsum = sid_subsum_pippenger(&points, &scalars, window_size);
     let duration_sid_subsum = start.elapsed();
 
     assert_eq!(result_naive, result_pippenger, "Results of pippenger and naive MSM should match");
     assert_eq!(result_naive, result_parallel, "Results of pippenger with parallelism and naive MSM should match");
     assert_eq!(result_naive, result_sid, "Results of pippenger with Signed Integer Decomposition should match with naive MSM");
-    assert_eq!(result_naive, result_subsum, "Results of pippenger with new subsum accumulation should match with naive MSM");
+    assert_eq!(result_naive, result_subsum, "Results of pippenger with more efficient subsum accumulation should match with naive MSM");
     assert_eq!(result_naive, result_parallel_sid, "Results of pippenger with Signed Integer Decomposition and parallelism should match with naive MSM");
-    assert_eq!(result_naive, result_sid_subsum, "Results of pippenger with Signed Integer Decomposition and new subsum accumulation should match with naive MSM");
+    assert_eq!(result_naive, result_parallel_subsum, "Results of pippenger with more efficient subsum accumulation and parallelism should match with naive MSM");
+    assert_eq!(result_naive, result_sid_subsum, "Results of pippenger with Signed Integer Decomposition and more efficient subsum accumulation should match with naive MSM");
 
     println!("Naive: {:?}", duration_naive);
     println!("Pippenger: {:?}", duration_pippenger);
@@ -85,6 +91,7 @@ fn main() {
     println!("SID: {:?}", duration_sid);
     println!("Subsum: {:?}", duration_subsum);
     println!("Parallel SID: {:?}", duration_parallel_sid);
+    println!("Parallel Subsum: {:?}", duration_parallel_subsum);
     println!("SID Subsum: {:?}", duration_sid_subsum);
 
 }
