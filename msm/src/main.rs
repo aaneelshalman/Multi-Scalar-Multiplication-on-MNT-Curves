@@ -40,7 +40,7 @@ fn main() {
 
     let points = generate_points(1000);
     let scalars = generate_scalars(1000);
-    let window_size = 2;
+    let window_size = 16;
 
     let start = Instant::now();
     let result_naive = naive_msm(&points, &scalars);

@@ -4,47 +4,37 @@ use ark_ff::Zero;
 use ark_mnt4_298::G1Projective;
 use std::collections::HashMap;
 use std::ops::Neg;
-use std::thread;
 
-// Main function for Pippenger with parallelism and 2-NAF Decomposition
-pub fn parallel_naf_pippenger(points: &[G1Projective], scalars: &[u32], window_size: usize) -> G1Projective {
+// Main function for Pippenger with Signed Integer Decomposition Decomposition
+pub fn sid_pippenger(points: &[G1Projective], scalars: &[u32], window_size: usize) -> G1Projective {
     assert_eq!(points.len(), scalars.len(), "Points and scalars must have the same length");
     
-    let partitions = parallel_naf_partition_msm(scalars, window_size);
-    let decomposed_partitions = parallel_naf_decompose_partitions(&partitions, window_size);
-    parallel_naf_combine_partitioned_msm(&decomposed_partitions, points, window_size)
+    let partitions = sif_partition_msm(scalars, window_size);
+    let decomposed_partitions = sid_decompose_partitions(&partitions, window_size);
+    sid_combine_partitioned_msm(&decomposed_partitions, points, window_size)
 }
 
-pub struct ParallelNafMsmPartition {
+pub struct SidMsmPartition {
     pub bit_index: usize,
     pub window_values: Vec<u32>,
 }
 
-impl Clone for ParallelNafMsmPartition {
-    fn clone(&self) -> ParallelNafMsmPartition {
-        ParallelNafMsmPartition {
+impl Clone for SidMsmPartition {
+    fn clone(&self) -> SidMsmPartition {
+        SidMsmPartition {
             bit_index: self.bit_index,
             window_values: self.window_values.clone(),
         }
     }
 }
 
-pub struct ParallelNafMsmPartitionDecomposed {
+pub struct SidMsmPartitionDecomposed {
     pub bit_index: usize,
     pub window_values: Vec<i64>, // New struct adjusted for signed integer decomposition
 }
 
-impl Clone for ParallelNafMsmPartitionDecomposed {
-    fn clone(&self) -> ParallelNafMsmPartitionDecomposed {
-        ParallelNafMsmPartitionDecomposed {
-            bit_index: self.bit_index,
-            window_values: self.window_values.clone(),
-        }
-    }
-}
 
-
-pub fn parallel_naf_partition_msm(scalars: &[u32], window_size: usize) -> Vec<ParallelNafMsmPartition> {
+pub fn sid_partition_msm(scalars: &[u32], window_size: usize) -> Vec<SidMsmPartition> {
     let num_partitions = (32 + window_size - 1) / window_size;
     let mut partitions = Vec::new();
 
@@ -53,19 +43,20 @@ pub fn parallel_naf_partition_msm(scalars: &[u32], window_size: usize) -> Vec<Pa
         let window_values: Vec<u32> = scalars.iter().map(|&scalar| {
             (scalar >> bit_index) & ((1 << window_size) - 1)
         }).collect();
-        partitions.push(ParallelNafMsmPartition { bit_index, window_values });
+        partitions.push(SidMsmPartition { bit_index, window_values });
     }
 
     partitions
 }
 
-pub fn parallel_naf_decompose_partitions(partitions: &[ParallelNafMsmPartition], window_size: usize) -> Vec<ParallelNafMsmPartitionDecomposed> {
-    let base = 2u32.pow(window_size as u32); // 2^(window_size)
-    let threshold = base / 2; // 2^(window_size-1)
+// Signed Integer Decomposition Step
+pub fn sid_decompose_partitions(partitions: &[SidMsmPartition], window_size: usize) -> Vec<SidMsmPartitionDecomposed> {
+    let base = 2u32.pow(window_size as u32); // 2^(window_size) -> can't use this!
+    let threshold = base / 2; // 2^(window_size-1) -> can't use this!
 
     // Initialize decomposed partitions with the same structure but empty window values
-    let mut decomposed_partitions: Vec<ParallelNafMsmPartitionDecomposed> = partitions.iter()
-        .map(|p| ParallelNafMsmPartitionDecomposed {
+    let mut decomposed_partitions: Vec<SidMsmPartitionDecomposed> = partitions.iter()
+        .map(|p| SidMsmPartitionDecomposed {
             bit_index: p.bit_index,
             window_values: vec![0i64; p.window_values.len()], // Initialize with zeros
         })
@@ -73,12 +64,12 @@ pub fn parallel_naf_decompose_partitions(partitions: &[ParallelNafMsmPartition],
 
     // Append an extra partition for overflow handling
     let last_bit_index = partitions.last().unwrap().bit_index + window_size;
-    decomposed_partitions.push(ParallelNafMsmPartitionDecomposed {
+    decomposed_partitions.push(SidMsmPartitionDecomposed {
         bit_index: last_bit_index,
         window_values: vec![0i64; partitions[0].window_values.len()], // Initialize with zeros for overflow handling
     });
 
-    // Iterate through each position of window values across all partitions, not window_values in the same bit_index
+    // Iterate through each position of window values across all partitions
     for i in 0..partitions[0].window_values.len() {
         let mut carry = 0i64;
 
@@ -89,7 +80,7 @@ pub fn parallel_naf_decompose_partitions(partitions: &[ParallelNafMsmPartition],
 
             if adjusted_value >= threshold as i64 {
                 decomposed_partitions[j].window_values[i] = adjusted_value - base as i64;
-                // Forward carry to the next partition's same position
+                // Ensure carry is forwarded to the next partition's same position
                 carry = 1;
             } else {
                 decomposed_partitions[j].window_values[i] = adjusted_value;
@@ -104,19 +95,19 @@ pub fn parallel_naf_decompose_partitions(partitions: &[ParallelNafMsmPartition],
     decomposed_partitions
 }
 
-pub fn parallel_naf_compute_msm_for_partition(partition: &ParallelNafMsmPartitionDecomposed, points: &[G1Projective], window_size: usize) -> G1Projective {
-    let mut buckets: HashMap<u32, Vec<(usize, i64)>> = HashMap::new();
+pub fn sid_compute_msm_for_partition(partition: &SidMsmPartitionDecomposed, points: &[G1Projective], window_size: usize) -> G1Projective {
+    let mut buckets: HashMap<u32, Vec<(usize, i64)>> = HashMap::new(); // Use absolute value for keys and keep sign with index for values
 
     // Assign points to buckets based on the absolute value while keeping track of the original value's sign
     for (index, &value) in partition.window_values.iter().enumerate() {
         if value != 0 {
-            let abs_value = value.abs() as u32;
+            let abs_value = value.abs() as u32; // Use absolute value for bucket key
             buckets.entry(abs_value).or_insert_with(Vec::new).push((index, value));
         }
     }
 
     // Calculate the maximum scalar value based on the absolute values
-    let max_scalar_value = (1 << window_size) - 1;
+    let max_scalar_value = (1 << (window_size - 1)) - 1;
 
     let mut msm_result = G1Projective::zero();
     let mut temp = G1Projective::zero();
@@ -144,35 +135,22 @@ pub fn parallel_naf_compute_msm_for_partition(partition: &ParallelNafMsmPartitio
     msm_result
 }
 
-pub fn parallel_naf_combine_partitioned_msm(partitions: &[ParallelNafMsmPartitionDecomposed], points: &[G1Projective], window_size: usize) -> G1Projective {
-    let mut handles = Vec::new();
 
-    // Spawn a thread for each partition, iterating through them in reverse to ensure doubling mimics scaling accurately
-    for partition in partitions.iter().rev() {
-        let partition_clone = partition.clone();
-        let points_clone = points.to_vec();
-
-        let handle = thread::spawn(move || {
-            let msm_result = parallel_naf_compute_msm_for_partition(&partition_clone, &points_clone, window_size);
-            msm_result
-        });
-
-        handles.push(handle);
-    }
-
-    // Collect results from each thread and combine
+pub fn sid_combine_partitioned_msm(partitions: &[SidMsmPartitionDecomposed], points: &[G1Projective], window_size: usize) -> G1Projective {
+    
     let mut final_result = G1Projective::zero();
-    for handle in handles {
-        let partition_result = handle.join().unwrap();
-        
+   
+    // Iterating over each partition in reverse to ensure doubling mimics scaling accurately
+    for partition in partitions.iter().rev() {
+        let partition_msm = sid_compute_msm_for_partition(partition, points, window_size);
+
         // Double the final result window_size times to mimic scaling by 2^bit_index
         for _ in 0..window_size {
             final_result = final_result.double();
         }
 
-        // Adding the partition MSM to the final result
-        final_result = add_points(final_result, partition_result);
+        // Add the iteratively doubled result to the accumulated result
+        final_result = add_points(final_result, partition_msm);
     }
-
     final_result
 }

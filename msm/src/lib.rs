@@ -7,6 +7,6 @@ pub mod operations;
 pub mod pippenger;
 pub mod naive;
 pub mod parallel_pippenger;
-pub mod parallel_naf_pippenger;
-pub mod naf_pippenger;
 pub mod subsum_pippenger;
+pub mod sid_pippenger;
+pub mod parallel_sid_pippenger;
