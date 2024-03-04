@@ -131,9 +131,8 @@ fn test_subsum_partition_msm_3() {
 fn test_subsum_compute_msm_for_partition() {
     let points = generate_points(10);
     let partition = SubsumMsmPartition { bit_index: 0, window_values: vec![1, 0, 1, 0, 1, 0, 1, 0, 1, 0] };
-    let window_size = 2;
 
-    let msm_result = subsum_compute_msm_for_partition(&partition, &points, window_size);
+    let msm_result = subsum_compute_msm_for_partition(&partition, &points);
     // Compare against result by adding points
     let expected_result = points.iter().step_by(2).fold(G1Projective::zero(), |acc, &p| add_points(acc, p));
     assert_eq!(msm_result, expected_result, "MSM computation for partition failed");
