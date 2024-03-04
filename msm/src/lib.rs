@@ -10,3 +10,4 @@ pub mod parallel_pippenger;
 pub mod subsum_pippenger;
 pub mod sid_pippenger;
 pub mod parallel_sid_pippenger;
+pub mod sid_subsum_pippenger;
