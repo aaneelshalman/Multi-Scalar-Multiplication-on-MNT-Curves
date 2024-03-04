@@ -9,7 +9,7 @@ use std::ops::Neg;
 pub fn sid_pippenger(points: &[G1Projective], scalars: &[u32], window_size: usize) -> G1Projective {
     assert_eq!(points.len(), scalars.len(), "Points and scalars must have the same length");
     
-    let partitions = sif_partition_msm(scalars, window_size);
+    let partitions = sid_partition_msm(scalars, window_size);
     let decomposed_partitions = sid_decompose_partitions(&partitions, window_size);
     sid_combine_partitioned_msm(&decomposed_partitions, points, window_size)
 }
@@ -107,7 +107,7 @@ pub fn sid_compute_msm_for_partition(partition: &SidMsmPartitionDecomposed, poin
     }
 
     // Calculate the maximum scalar value based on the absolute values
-    let max_scalar_value = (1 << (window_size - 1)) - 1;
+    let max_scalar_value = (1 << window_size) - 1;
 
     let mut msm_result = G1Projective::zero();
     let mut temp = G1Projective::zero();
