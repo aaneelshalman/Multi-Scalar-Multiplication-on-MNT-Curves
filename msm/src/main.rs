@@ -43,8 +43,8 @@ fn main() {
         (0..num_scalars).map(|_| rng.gen_range(0..4294967295)).collect() // 32-bit integers
     }
 
-    let points = generate_points(10000);
-    let scalars = generate_scalars(10000);
+    let points = generate_points(65536);
+    let scalars = generate_scalars(65536);
     let window_size = 2;
 
     let start = Instant::now();
