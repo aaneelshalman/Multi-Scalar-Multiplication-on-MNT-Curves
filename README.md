@@ -32,12 +32,16 @@ To run the main application and view the runtime outputs of the ten algorithm im
 3. The generate_scalar function includes a default maximum scalar value set to 4294967295, which is the maximum for a 32-bit unsigned integer. Feel free to adjust this value as needed to fit your testing requirements.
 4. To obtain runtimes for specific stages of the Pippenger bucket method or to assess the additional cost of signed integer decomposition, uncomment the relevant timing lines in pippenger.rs and sid_pippenger.rs. Look for lines similar to:
 
-'''
+
+### Advanced Usage
+
+To analyze detailed performance timings for specific stages of the Pippenger bucket method or assess the additional cost of signed integer decomposition, you can enable diagnostic print statements in the source code. In the files `pippenger.rs` and `sid_pippenger.rs`, look for and uncomment lines similar to the following:
+
+```rust
         use std::time::Instant;
         let start_partitioning = Instant::now();
         let duration_partitioning = start_partitioning.elapsed();
         println!("Partitioning took: {:?}", duration_partitioning);
-'''
 
 Uncomment these lines to enable timing and print statements for the respective sections of the code.
 
