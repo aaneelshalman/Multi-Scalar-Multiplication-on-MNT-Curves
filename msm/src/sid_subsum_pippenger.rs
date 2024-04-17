@@ -4,7 +4,7 @@ use ark_ff::Zero;
 use ark_mnt4_298::G1Projective;
 use std::collections::BTreeMap;
 use std::ops::Neg;
-use std::time::Instant;
+// use std::time::Instant;
 
 // Main function for Pippenger with Signed Integer Decomposition and New Subsum Accumulation
 pub fn sid_subsum_pippenger(points: &[G1Projective], scalars: &[u32], window_size: usize) -> G1Projective {
@@ -44,7 +44,7 @@ pub fn sid_subsum_partition_msm(scalars: &[u32], window_size: usize) -> Vec<SidS
 
 // Step 1.5: Decompose scalars using Signed Integer Decomposition
 pub fn sid_subsum_decompose_partitions(partitions: &[SidSubsumMsmPartition], window_size: usize) -> Vec<SidSubsumMsmPartitionDecomposed> {
-    let start_decomposition = Instant::now();
+    // let start_decomposition = Instant::now();
     let base = 2u32.pow(window_size as u32); // 2^(window_size) -> can't use this!
     let threshold = base / 2; // 2^(window_size-1) -> can't use this!
 
@@ -85,8 +85,8 @@ pub fn sid_subsum_decompose_partitions(partitions: &[SidSubsumMsmPartition], win
             decomposed_partitions[partitions.len()].window_values[i] += carry;
         }
     }
-    let duration_decomposition = start_decomposition.elapsed();
-    println!("Decomposition took: {:?}", duration_decomposition);
+    // let duration_decomposition = start_decomposition.elapsed();
+    // println!("Decomposition took: {:?}", duration_decomposition);
 
     decomposed_partitions
 }

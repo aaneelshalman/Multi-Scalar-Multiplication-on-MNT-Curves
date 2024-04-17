@@ -86,41 +86,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "ark-mnt4-753"
-version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d27256f8a5cfb4ac27f43cabfbadf45ab60a153a8f65a3474b4c89e48fd35e40"
-dependencies = [
- "ark-ec",
- "ark-ff",
- "ark-std",
-]
-
-[[package]]
-name = "ark-mnt6-298"
-version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0b476521074ed1ccfec7277bbe5c6fcf76be15fe1aa63f23f2545f0c8ae6ae73"
-dependencies = [
- "ark-ec",
- "ark-ff",
- "ark-mnt4-298",
- "ark-std",
-]
-
-[[package]]
-name = "ark-mnt6-753"
-version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "380c58d43c24fd113d41094f5e183e9a2e6ef8bbc8a281e304bfd5076fda7e7f"
-dependencies = [
- "ark-ec",
- "ark-ff",
- "ark-mnt4-753",
- "ark-std",
-]
-
-[[package]]
 name = "ark-poly"
 version = "0.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -266,9 +231,6 @@ dependencies = [
  "ark-ec",
  "ark-ff",
  "ark-mnt4-298",
- "ark-mnt4-753",
- "ark-mnt6-298",
- "ark-mnt6-753",
  "ark-std",
  "rand",
 ]

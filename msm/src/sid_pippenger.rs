@@ -4,7 +4,7 @@ use ark_ff::Zero;
 use ark_mnt4_298::G1Projective;
 use std::collections::HashMap;
 use std::ops::Neg;
-use std::time::Instant;
+// use std::time::Instant;
 
 // Main function for Pippenger with Signed Integer Decomposition Decomposition
 pub fn sid_pippenger(points: &[G1Projective], scalars: &[u32], window_size: usize) -> G1Projective {
@@ -20,18 +20,10 @@ pub struct SidMsmPartition {
     pub window_values: Vec<u32>,
 }
 
-impl Clone for SidMsmPartition {
-    fn clone(&self) -> SidMsmPartition {
-        SidMsmPartition {
-            bit_index: self.bit_index,
-            window_values: self.window_values.clone(),
-        }
-    }
-}
-
+// New struct adjusted for signed integer decomposition
 pub struct SidMsmPartitionDecomposed {
     pub bit_index: usize,
-    pub window_values: Vec<i64>, // New struct adjusted for signed integer decomposition
+    pub window_values: Vec<i64>, 
 }
 
 
@@ -52,11 +44,11 @@ pub fn sid_partition_msm(scalars: &[u32], window_size: usize) -> Vec<SidMsmParti
 
 // Signed Integer Decomposition Step
 pub fn sid_decompose_partitions(partitions: &[SidMsmPartition], window_size: usize) -> Vec<SidMsmPartitionDecomposed> {
-    let start_decomposition = Instant::now();
-    let base = 2u32.pow(window_size as u32); // 2^(window_size) -> can't use this!
-    let threshold = base / 2; // 2^(window_size-1) -> can't use this!
+    // let start_decomposition = Instant::now();
+    let base = 2u32.pow(window_size as u32);
+    let threshold = base / 2;
 
-    // Initialize decomposed partitions with the same structure but empty window values
+    // Initialise decomposed partitions with the same structure but empty window values
     let mut decomposed_partitions: Vec<SidMsmPartitionDecomposed> = partitions.iter()
         .map(|p| SidMsmPartitionDecomposed {
             bit_index: p.bit_index,
@@ -68,7 +60,7 @@ pub fn sid_decompose_partitions(partitions: &[SidMsmPartition], window_size: usi
     let last_bit_index = partitions.last().unwrap().bit_index + window_size;
     decomposed_partitions.push(SidMsmPartitionDecomposed {
         bit_index: last_bit_index,
-        window_values: vec![0i64; partitions[0].window_values.len()], // Initialize with zeros for overflow handling
+        window_values: vec![0i64; partitions[0].window_values.len()], // Initialise with zeros for overflow handling
     });
 
     // Iterate through each position of window values across all partitions
@@ -93,8 +85,8 @@ pub fn sid_decompose_partitions(partitions: &[SidMsmPartition], window_size: usi
             decomposed_partitions[partitions.len()].window_values[i] += carry;
         }
     }
-    let duration_decomposition = start_decomposition.elapsed();
-    println!("Decomposition took: {:?}", duration_decomposition);
+    // let duration_decomposition = start_decomposition.elapsed();
+    // println!("Decomposition took: {:?}", duration_decomposition);
 
     decomposed_partitions
 }

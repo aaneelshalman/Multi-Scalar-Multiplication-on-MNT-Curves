@@ -43,14 +43,16 @@ fn main() {
         (0..num_scalars).map(|_| rng.gen_range(0..4294967295)).collect() // 32-bit integers
     }
 
-    let points = generate_points(65536);
-    let scalars = generate_scalars(65536);
+    let num_points = 100;
+
+    let points = generate_points(num_points);
+    let scalars = generate_scalars(num_points);
     let window_size = 2;
 
     let start = Instant::now();
     let result_naive = naive_msm(&points, &scalars);
     let duration_naive = start.elapsed();
-    
+        
     let start = Instant::now();
     let result_trivial = trivial_msm(&points, &scalars);
     let duration_trivial = start.elapsed();
@@ -106,5 +108,5 @@ fn main() {
     println!("Parallel SID: {:?}", duration_parallel_sid);
     println!("Parallel Subsum: {:?}", duration_parallel_subsum);
     println!("SID Subsum: {:?}", duration_sid_subsum);
-    println!("Parallel SID Subsum: {:?}", duration_parallel_sid_subsum);
+    println!("Parallel SID Subsum: {:?}", duration_parallel_sid_subsum);    
 }

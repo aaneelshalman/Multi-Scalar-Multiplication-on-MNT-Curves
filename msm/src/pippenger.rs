@@ -3,7 +3,7 @@ use ark_ec::Group;
 use ark_ff::Zero;
 use ark_mnt4_298::G1Projective;
 use std::collections::HashMap;
-use std::time::Instant;
+// use std::time::Instant;
 
 // Main pippenger function
 pub fn pippenger(points: &[G1Projective], scalars: &[u32], window_size: usize) -> G1Projective {
@@ -20,8 +20,9 @@ pub struct MsmPartition {
     pub window_values: Vec<u32>,
 }
 
-/// Step 1: Split MSM with 32-bit scalars into 32/c MSMs with c-bit scalars. c == window_size
+/// Step 1: Split MSM with b-bit scalars into b/c MSMs with c-bit scalars. c == window_size
 pub fn partition_msm(scalars: &[u32], window_size: usize) -> Vec<MsmPartition> {
+    // let start_partitioning = Instant::now();
     
     // Calculate the total number of partitions based on window size
     // (32 + window_size - 1) / window_size is used so that if 32 divides window_size, num_partitions will return the divisor
@@ -38,16 +39,13 @@ pub fn partition_msm(scalars: &[u32], window_size: usize) -> Vec<MsmPartition> {
         // Collect the corresponding window values for each scalar
         let window_values: Vec<u32> = scalars.iter().map(|&scalar| {
             // Shift the scalar to right align the desired bits and mask off the rest
-            // Eg: 10110110 (182 in decimal)
-            // Bit_index = 0, LHS: shift scalar by 0 so 10110110, RHS: 00000011, so you get 10 by bitwise AND operator
-            // Bit index = 2, LHS: shift scalar by 2 so 00101101, RHS: 00000011, so you get 01 by bitwise AND operator
-            // Bit index = 4, LHS: shift scalar by 4 so 00001011, RHS: 00000011 so you get 11 by bitwise AND operator
-            // Bit index = 6, LHS: shift scalar by 6 so 00000010, RHS: 00000011, so you get 10 by bitwise AND operator
             (scalar >> bit_index) & ((1 << window_size) - 1)
         }).collect();
 
         // Push the partition information to the list of partitions
         partitions.push(MsmPartition { bit_index, window_values });
+        // let duration_partitioning = start_partitioning.elapsed();
+        // println!("Partitioning took: {:?}", duration_partitioning);
     }
 
     // Return the list of partitions, each containing its bit index and window values
@@ -55,21 +53,21 @@ pub fn partition_msm(scalars: &[u32], window_size: usize) -> Vec<MsmPartition> {
 }
 
 pub fn compute_msm_for_partition(partition: &MsmPartition, points: &[G1Projective], window_size: usize) -> G1Projective {
-    let start_bucketing = Instant::now();
+    // let start_bucketing = Instant::now();
     let mut buckets: HashMap<u32, Vec<usize>> = HashMap::new();
     for (index, &value) in partition.window_values.iter().enumerate() {
         if value != 0 {
             buckets.entry(value).or_insert_with(Vec::new).push(index);
         }
     }
-    let duration_bucketing = start_bucketing.elapsed();
-    println!("Bucketing took: {:?}", duration_bucketing);
+    // let duration_bucketing = start_bucketing.elapsed();
+    // println!("Bucketing took: {:?}", duration_bucketing);
 
     let max_scalar_value = (1 << window_size) - 1;
     let mut msm_result = G1Projective::zero();
     let mut temp = G1Projective::zero();
 
-    let start_iterating = Instant::now();
+    // let start_subsum = Instant::now();
     for scalar_value in (1..=max_scalar_value).rev() {
         if let Some(indexes) = buckets.get(&scalar_value) {
             let sum_of_points: G1Projective = indexes.iter()
@@ -79,8 +77,8 @@ pub fn compute_msm_for_partition(partition: &MsmPartition, points: &[G1Projectiv
         }
         msm_result = add_points(msm_result, temp);
     }
-    let duration_iterating = start_iterating.elapsed();
-    println!("Iterating over scalar values took: {:?}", duration_iterating);
+    // let duration_subsum = start_iterating.elapsed();
+    // println!("Subsum accumulation took: {:?}", duration_subsum);
 
     msm_result
 }

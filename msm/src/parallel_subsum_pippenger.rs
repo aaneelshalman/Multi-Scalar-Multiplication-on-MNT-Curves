@@ -20,6 +20,7 @@ pub struct ParallelSubsumMsmPartition {
     pub window_values: Vec<u32>,
 }
 
+// Cloned struct for parallelism
 impl Clone for ParallelSubsumMsmPartition {
     fn clone(&self) -> ParallelSubsumMsmPartition {
         ParallelSubsumMsmPartition {
@@ -120,7 +121,7 @@ pub fn parallel_subsum_compute_msm_for_partition(partition: &ParallelSubsumMsmPa
 pub fn parallel_subsum_combine_partitioned_msm(partitions: &[ParallelSubsumMsmPartition], points: &[G1Projective], window_size: usize) -> G1Projective {
     let mut handles = Vec::new();
 
-    // Spawn a thread for each partition, iterating through them in reverse to ensure doubling mimics scaling accurately
+    // Spawn a thread for each partition, iterate through them in reverse to ensure doubling mimics the bit scaling process accurately
     for partition in partitions.iter().rev() {
         let partition_clone = partition.clone();
         let points_clone = points.to_vec();
