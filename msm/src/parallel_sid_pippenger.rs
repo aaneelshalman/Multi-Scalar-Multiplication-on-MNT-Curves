@@ -20,6 +20,7 @@ pub struct ParallelSidMsmPartition {
     pub window_values: Vec<u32>,
 }
 
+// Cloned struct for parallelism
 impl Clone for ParallelSidMsmPartition {
     fn clone(&self) -> ParallelSidMsmPartition {
         ParallelSidMsmPartition {
@@ -29,11 +30,13 @@ impl Clone for ParallelSidMsmPartition {
     }
 }
 
+// New struct adjusted for signed integer decomposition
 pub struct ParallelSidMsmPartitionDecomposed {
     pub bit_index: usize,
-    pub window_values: Vec<i64>, // New struct adjusted for signed integer decomposition
+    pub window_values: Vec<i64>,
 }
 
+// Cloned struct for parallelism
 impl Clone for ParallelSidMsmPartitionDecomposed {
     fn clone(&self) -> ParallelSidMsmPartitionDecomposed {
         ParallelSidMsmPartitionDecomposed {
@@ -59,14 +62,14 @@ pub fn parallel_sid_partition_msm(scalars: &[u32], window_size: usize) -> Vec<Pa
 }
 
 pub fn parallel_sid_decompose_partitions(partitions: &[ParallelSidMsmPartition], window_size: usize) -> Vec<ParallelSidMsmPartitionDecomposed> {
-    let base = 2u32.pow(window_size as u32); // 2^(window_size)
-    let threshold = base / 2; // 2^(window_size-1)
+    let base = 2u32.pow(window_size as u32);
+    let threshold = base / 2;
 
-    // Initialize decomposed partitions with the same structure but empty window values
+    // Initialise decomposed partitions with the same structure but empty window values
     let mut decomposed_partitions: Vec<ParallelSidMsmPartitionDecomposed> = partitions.iter()
         .map(|p| ParallelSidMsmPartitionDecomposed {
             bit_index: p.bit_index,
-            window_values: vec![0i64; p.window_values.len()], // Initialize with zeros
+            window_values: vec![0i64; p.window_values.len()], // Initialise with zeros
         })
         .collect();
 
@@ -74,7 +77,7 @@ pub fn parallel_sid_decompose_partitions(partitions: &[ParallelSidMsmPartition],
     let last_bit_index = partitions.last().unwrap().bit_index + window_size;
     decomposed_partitions.push(ParallelSidMsmPartitionDecomposed {
         bit_index: last_bit_index,
-        window_values: vec![0i64; partitions[0].window_values.len()], // Initialize with zeros for overflow handling
+        window_values: vec![0i64; partitions[0].window_values.len()], // Initialise with zeros for overflow handling
     });
 
     // Iterate through each position of window values across all partitions, not window_values in the same bit_index
@@ -146,7 +149,7 @@ pub fn parallel_sid_compute_msm_for_partition(partition: &ParallelSidMsmPartitio
 pub fn parallel_sid_combine_partitioned_msm(partitions: &[ParallelSidMsmPartitionDecomposed], points: &[G1Projective], window_size: usize) -> G1Projective {
     let mut handles = Vec::new();
 
-    // Spawn a thread for each partition, iterating through them in reverse to ensure doubling mimics scaling accurately
+    // Spawn a thread for each partition, iterate through them in reverse to ensure doubling mimics the bit scaling process accurately
     for partition in partitions.iter().rev() {
         let partition_clone = partition.clone();
         let points_clone = points.to_vec();

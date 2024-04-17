@@ -4,7 +4,6 @@ use ark_ff::Zero;
 use ark_mnt4_298::G1Projective;
 use std::collections::BTreeMap;
 use std::ops::Neg;
-// use std::time::Instant;
 
 // Main function for Pippenger with Signed Integer Decomposition and New Subsum Accumulation
 pub fn sid_subsum_pippenger(points: &[G1Projective], scalars: &[u32], window_size: usize) -> G1Projective {
@@ -44,15 +43,14 @@ pub fn sid_subsum_partition_msm(scalars: &[u32], window_size: usize) -> Vec<SidS
 
 // Step 1.5: Decompose scalars using Signed Integer Decomposition
 pub fn sid_subsum_decompose_partitions(partitions: &[SidSubsumMsmPartition], window_size: usize) -> Vec<SidSubsumMsmPartitionDecomposed> {
-    // let start_decomposition = Instant::now();
     let base = 2u32.pow(window_size as u32); // 2^(window_size) -> can't use this!
     let threshold = base / 2; // 2^(window_size-1) -> can't use this!
 
-    // Initialize decomposed partitions with the same structure but empty window values
+    // Initialise decomposed partitions with the same structure but empty window values
     let mut decomposed_partitions: Vec<SidSubsumMsmPartitionDecomposed> = partitions.iter()
         .map(|p| SidSubsumMsmPartitionDecomposed {
             bit_index: p.bit_index,
-            window_values: vec![0i64; p.window_values.len()], // Initialize with zeros
+            window_values: vec![0i64; p.window_values.len()], // Initialise with zeros
         })
         .collect();
 
@@ -60,7 +58,7 @@ pub fn sid_subsum_decompose_partitions(partitions: &[SidSubsumMsmPartition], win
     let last_bit_index = partitions.last().unwrap().bit_index + window_size;
     decomposed_partitions.push(SidSubsumMsmPartitionDecomposed {
         bit_index: last_bit_index,
-        window_values: vec![0i64; partitions[0].window_values.len()], // Initialize with zeros for overflow handling
+        window_values: vec![0i64; partitions[0].window_values.len()], // Initialise with zeros for overflow handling
     });
 
     // Iterate through each position of window values across all partitions
@@ -85,8 +83,6 @@ pub fn sid_subsum_decompose_partitions(partitions: &[SidSubsumMsmPartition], win
             decomposed_partitions[partitions.len()].window_values[i] += carry;
         }
     }
-    // let duration_decomposition = start_decomposition.elapsed();
-    // println!("Decomposition took: {:?}", duration_decomposition);
 
     decomposed_partitions
 }

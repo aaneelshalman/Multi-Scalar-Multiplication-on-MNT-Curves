@@ -38,9 +38,9 @@ fn main() {
         (0..num_points).map(|_| G1Projective::rand(&mut rng)).collect()
     }
     
-    fn generate_scalars(num_scalars: usize) -> Vec<u32> {
+    fn generate_scalars(num_points: usize) -> Vec<u32> {
         let mut rng = thread_rng();
-        (0..num_scalars).map(|_| rng.gen_range(0..4294967295)).collect() // 32-bit integers
+        (0..num_points).map(|_| rng.gen_range(0..4294967295)).collect() // 32-bit integers
     }
 
     let num_points = 100;

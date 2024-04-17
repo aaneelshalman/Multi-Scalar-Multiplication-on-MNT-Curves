@@ -11,7 +11,7 @@ fn test_parallel_pippenger_with_zero_scalars() {
     let mut rng = test_rng();
     let points = vec![G1Projective::rand(&mut rng), G1Projective::rand(&mut rng)];
     let scalars = vec![0, 0];
-    let window_size = 2; // Example window size
+    let window_size = 2;
     assert_eq!(parallel_pippenger(&points, &scalars, window_size), G1Projective::zero(), "Pippenger with zero scalars should return the zero point");
 }
 

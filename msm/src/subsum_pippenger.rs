@@ -4,7 +4,7 @@ use ark_ff::Zero;
 use ark_mnt4_298::G1Projective;
 use std::collections::BTreeMap;
 
-// Main pippenger function
+// Main function for Pippenger with New Subsum Accumulation
 pub fn subsum_pippenger(points: &[G1Projective], scalars: &[u32], window_size: usize) -> G1Projective {
 
     // Ensure points and scalars have the same length

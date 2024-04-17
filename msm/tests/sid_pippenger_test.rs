@@ -153,7 +153,7 @@ fn test_parallel_sid_compute_msm_for_partition() {
     let window_size = 2;
     let decomposed_partitions = sid_decompose_partitions(&[partitions], window_size);
 
-    // Initialize an accumulator for MSM results from each partition
+    // Initialise an accumulator for MSM results from each partition
     let mut total_msm_result = G1Projective::zero();
 
     // Iterate over each decomposed partition and compute its MSM contribution
@@ -181,7 +181,7 @@ fn test_sid_compute_msm_for_partition_2() {
     let points = generate_points(10);
     let window_size = 2;
 
-    // Utilize the parallel_sid_compute_msm_for_partition function to process the decomposed partition
+    // Utilise the parallel_sid_compute_msm_for_partition function to process the decomposed partition
     let _ = sid_compute_msm_for_partition(&decomposed_partition, &points, window_size);
 
     // Extract the bucketing logic for verification purposes

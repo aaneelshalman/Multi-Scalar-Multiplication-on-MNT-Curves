@@ -55,8 +55,8 @@ fn test_naive_msm_with_different_lengths() {
     let mut rng = test_rng();
     let points = vec![G1Projective::rand(&mut rng)];
     let scalars = vec![1, 2];
-    let panic_result = naive_msm(&points, &scalars);  // This should panic
-    assert_eq!(panic_result,G1Projective::zero())
+    let panic_result = naive_msm(&points, &scalars); // This should panic
+    assert_eq!(panic_result,G1Projective::zero()) 
 }
 
 

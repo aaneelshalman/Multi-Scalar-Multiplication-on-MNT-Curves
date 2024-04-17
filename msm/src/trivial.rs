@@ -25,7 +25,7 @@ pub fn trivial_msm(points: &[G1Projective], scalars: &[u32]) -> G1Projective {
                 point_contribution = add_points(point_contribution, current_point);
             }
 
-            // Prepare for the next bit
+            // Double current point regardless of bit
             current_point = current_point.double();
             scalar >>= 1; // Shift the scalar to the right for the next bit
         }

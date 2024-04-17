@@ -18,6 +18,7 @@ pub struct ParallelMsmPartition {
     pub window_values: Vec<u32>,
 }
 
+// Cloned struct for parallelism
 impl Clone for ParallelMsmPartition {
     fn clone(&self) -> ParallelMsmPartition {
         ParallelMsmPartition {
@@ -80,7 +81,7 @@ pub fn parallel_compute_msm_for_partition(partition: &ParallelMsmPartition, poin
 pub fn parallel_combine_partitioned_msm(partitions: &[ParallelMsmPartition], points: &[G1Projective], window_size: usize) -> G1Projective {
     let mut handles = Vec::new();
 
-    // Spawn a thread for each partition, iterating through them in reverse to ensure doubling mimics scaling accurately
+    // Spawn a thread for each partition, iterate through them in reverse to ensure doubling mimics the bit scaling process accurately
     for partition in partitions.iter().rev() {
         let partition_clone = partition.clone();
         let points_clone = points.to_vec();
