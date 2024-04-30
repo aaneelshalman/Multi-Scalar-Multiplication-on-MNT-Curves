@@ -39,8 +39,6 @@ To run the main application and view the runtime outputs of the ten algorithm im
         println!("Partitioning took: {:?}", duration_partitioning);
 ```
 
-Uncomment these lines to enable timing and print statements for the respective sections of the code.
-
 ## Testing
 
 For testing of the algorithms:
